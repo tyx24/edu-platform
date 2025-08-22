@@ -1,5 +1,7 @@
 package com.education.platform.service;
 
+import com.education.platform.dto.PageRequest;
+import com.education.platform.dto.PageResult;
 import com.education.platform.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -15,4 +17,6 @@ public interface IUserService extends IService<User> {
     User register(String username, String password, String email, String role);
 
     String login(String username, String password);
+
+    PageResult<User> getUserList(PageRequest request, String role);
 }

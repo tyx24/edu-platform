@@ -26,6 +26,12 @@ export const courseApi = {
     return request.post(`/course/reject/${courseId}`);
   },
 
+  // 可以补充信息服务 -- rejectReason驳回原因
+  // 管理员驳回课程
+  // rejectCourse: (courseId, rejectReason) => {
+  //   return request.post(`/course/reject/${courseId}`, { rejectReason });
+  // },
+
   // 获取章节树
   getChapterTree: (courseId) => {
     return request.get(`/chapter/tree/${courseId}`);

@@ -321,6 +321,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { userApi } from '../../api/user';
+import { userinfoApi } from '../../api/userinfo';
 import { useAuthStore } from '../../store/auth';
 import { UserFilled, School, Setting } from '@element-plus/icons-vue';
 
@@ -455,8 +456,27 @@ const passwordRules = {
 const fetchUserProfile = async () => {
   loading.value = true;
   try {
-    const res = await userApi.getUserInfo();
-    userProfile.value = res || {};
+    // 获取基本用户信息（用户名、邮箱、角色、注册时间）
+    const basicInfo = await userApi.getUserInfo();
+    // 获取详细用户信息（头像、真实姓名、联系方式等）
+    const profileData = await userinfoApi.getUserProfile({ pageNum: 1, pageSize: 100 });
+    
+    // 从返回的数据中找到当前用户的详细信息
+    let userDetailInfo = {};
+    const currentUserId = basicInfo.id;
+    
+    // 遍历数字索引找到匹配的用户信息
+    for (let key in profileData.records) {
+      if (typeof profileData.records[key] === 'object' && profileData.records[key].userId === currentUserId) {
+        userDetailInfo = profileData.records[key];
+        break;
+      }
+    }
+    console.log(userDetailInfo);
+    
+    // 合并基本信息和详细信息
+    userProfile.value = { ...basicInfo, ...userDetailInfo } || {};
+    console.log(userProfile.value);
   } catch (error) {
     console.error('获取用户资料失败:', error);
     ElMessage.error('获取用户资料失败');
@@ -506,7 +526,7 @@ const saveBasicInfo = async () => {
   await basicInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userApi.updateUserProfile(basicInfoForm.value);
+        await userinfoApi.updateBasicInfo(basicInfoForm.value);
         ElMessage.success('基本信息更新成功');
         basicInfoDialogVisible.value = false;
         fetchUserProfile();
@@ -535,7 +555,7 @@ const saveContactInfo = async () => {
   await contactInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userApi.updateUserProfile(contactInfoForm.value);
+        await userinfoApi.updateContactInfo(contactInfoForm.value);
         ElMessage.success('联系方式更新成功');
         contactInfoDialogVisible.value = false;
         fetchUserProfile();
@@ -565,7 +585,7 @@ const saveStudentInfo = async () => {
   await studentInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userApi.updateUserProfile(studentInfoForm.value);
+        await userinfoApi.updateStudentInfo(studentInfoForm.value);
         ElMessage.success('学生信息更新成功');
         studentInfoDialogVisible.value = false;
         fetchUserProfile();
@@ -594,7 +614,7 @@ const saveTeacherInfo = async () => {
   await teacherInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userApi.updateUserProfile(teacherInfoForm.value);
+        await userinfoApi.updateTeacherInfo(teacherInfoForm.value);
         ElMessage.success('教师信息更新成功');
         teacherInfoDialogVisible.value = false;
         fetchUserProfile();
@@ -615,7 +635,7 @@ const editBio = () => {
 // 保存个人简介
 const saveBio = async () => {
   try {
-    await userApi.updateUserProfile(bioForm.value);
+    await userinfoApi.updateBio(bioForm.value);
     ElMessage.success('个人简介更新成功');
     bioDialogVisible.value = false;
     fetchUserProfile();
@@ -642,7 +662,7 @@ const changePassword = async () => {
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userApi.changePassword({
+        await userinfoApi.changePassword({
           oldPassword: passwordForm.value.oldPassword,
           newPassword: passwordForm.value.newPassword
         });

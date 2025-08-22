@@ -1,5 +1,6 @@
 package com.education.platform.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
 import com.education.platform.entity.Course;
@@ -17,6 +18,7 @@ import java.util.Map;
  * @since 2025-08-03
  */
 public interface ICourseService extends IService<Course> {
+
     void approveCourse(Long courseId);   // 管理员审核通过
 
     void rejectCourse(Long courseId);    // 管理员驳回
