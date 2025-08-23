@@ -49,8 +49,8 @@
             </template>
 
             <div v-if="authStore.isAuthenticated" class="user-info">
-              <el-avatar :size="72" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">
-                {{ user?.username?.charAt(0)?.toUpperCase() }}
+              <el-avatar :size="72" :src="avatarUrl" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;">
+                <span v-if="!userProfile.avatar">{{ user?.username?.charAt(0)?.toUpperCase() }}</span>
               </el-avatar>
               <h3>{{ user?.username }}</h3>
               <p>{{ roleText }}</p>
@@ -130,10 +130,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { Collection, Reading } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { useAuthStore } from '../store/auth';
 import { courseApi } from '../api/course';
 import { enrollmentApi } from '../api/enrollment';
 import { userApi } from '../api/user';
+import { userinfoApi } from '../api/userinfo';
 import { examApi } from '../api/exam';
 import { homeworkApi } from '../api/homework';
 import { commentApi } from '../api/comment';
@@ -145,6 +147,8 @@ const stats = ref({});
 const hotCourses = ref([]);
 const loading = ref(true);
 const progress = ref(0);
+const userProfile = ref({});
+const defaultAvatar = '/edu/default-avatar.png';
 
 const statCards = computed(() => {
   const role = user?.role;
@@ -205,8 +209,46 @@ const getTopRatedCourses = async (courses, n) => {
   }
 };
 
+// 获取用户资料
+const fetchUserProfile = async () => {
+  try {
+    loading.value = true;
+    // 获取详细用户信息（头像、真实姓名、联系方式等）
+    const profileData = await userinfoApi.getUserProfile({ pageNum: 1, pageSize: 100 });
+
+    // 从返回的数据中找到当前用户的详细信息
+    let userDetailInfo = {};
+    const currentUserId = authStore.user?.id;
+
+    // 遍历数字索引找到匹配的用户信息
+    for (let key in profileData.records) {
+      if (typeof profileData.records[key] === 'object' && profileData.records[key].userId === currentUserId) {
+        userDetailInfo = profileData.records[key];
+        break;
+      }
+    }
+    // 只保存详细用户信息
+    userProfile.value = userDetailInfo || {};
+  } catch (error) {
+    console.error('获取用户资料失败:', error);
+    ElMessage.error('获取用户资料失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 处理头像URL
+const avatarUrl = computed(() => {
+  if (!userProfile.value.avatar) return defaultAvatar;
+  const avatar = userProfile.value.avatar;
+  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
+});
+
 onMounted(async () => {
   try {
+    // 获取用户资料
+    await fetchUserProfile();
+    
     const role = user?.role;
     if (role === "student") {
       const myCourses = await enrollmentApi.getMyCourses();
@@ -255,7 +297,7 @@ onMounted(async () => {
       stats.value = { courseCount: courseList?.total || 0, userCount: userList?.total || 0, examCount: examTotal };
     }
 
-    const listRes = await courseApi.getCourseList({ pageNum: 1, pageSize: 20, state: 1 });
+    const listRes = await courseApi.getCourseList({ pageNum: 1, pageSize: 100, state: 1 });
     const allCourses = listRes?.records || [];
     if (allCourses.length > 0) {
       const selected = await getTopRatedCourses(allCourses, 6);

@@ -2,8 +2,10 @@ package com.education.platform.service;
 
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
+import com.education.platform.dto.PasswordDTO;
 import com.education.platform.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.education.platform.util.R;
 
 /**
  * <p>
@@ -19,4 +21,6 @@ public interface IUserService extends IService<User> {
     String login(String username, String password);
 
     PageResult<User> getUserList(PageRequest request, String role);
+
+    R<Object> changePassword(PasswordDTO dto);
 }

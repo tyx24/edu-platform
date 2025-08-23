@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
+import com.education.platform.dto.PasswordDTO;
 import com.education.platform.entity.Course;
 import com.education.platform.entity.User;
 import com.education.platform.service.IUserService;
+import com.education.platform.util.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,6 +49,12 @@ public class UserController {
     @GetMapping("/{id}")
     public User getUserById(@PathVariable Serializable id) {
         return userService.getById(id);
+    }
+
+    @PutMapping("/password")
+    @Operation(summary = "修改密码")
+    public R<Object> changePassword(@RequestBody PasswordDTO dto) {
+        return userService.changePassword(dto);
     }
 
 

@@ -6,19 +6,23 @@ export const userinfoApi = {
     return request.post('/userInfo/page', { params });
   },
 
-  // 更新用户详细信息
-  updateUserProfile: (profileData) => {
-    return request.put('/user/profile', profileData);
-  },
-
-  // 上传用户头像
+   // 上传用户头像
   uploadAvatar: (formData) => {
-    return request.post('/user/upload-avatar', formData, {
+    return request({
+      url: '/userInfo/avatar',
+      method: 'post',
+      data: formData,
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
   },
+
+  // 更新用户详细信息
+  updateUserProfile: (profileData) => {
+    return request.put('/user/profile', profileData);
+  },
+
 
   // 更新基本信息（真实姓名、邮箱）
   updateBasicInfo: (basicInfo) => {
@@ -45,40 +49,6 @@ export const userinfoApi = {
     return request.put('/user/bio', bioData);
   },
 
-  // 修改密码
-  changePassword: (passwordData) => {
-    return request.put('/user/change-password', passwordData);
-  },
-
-  // 获取用户头像
-  getUserAvatar: (userId) => {
-    return request.get(`/user/${userId}/avatar`);
-  },
-
-  // 获取用户联系方式
-  getContactInfo: () => {
-    return request.get('/user/contact-info');
-  },
-
-  // 获取学生详细信息
-  getStudentInfo: () => {
-    return request.get('/user/student-info');
-  },
-
-  // 获取教师详细信息
-  getTeacherInfo: () => {
-    return request.get('/user/teacher-info');
-  },
-
-  // 获取用户个人简介
-  getUserBio: () => {
-    return request.get('/user/bio');
-  },
-
-  // 验证当前密码
-  verifyPassword: (password) => {
-    return request.post('/user/verify-password', { password });
-  },
 
   // 重置密码（通过邮箱）
   resetPasswordByEmail: (email) => {

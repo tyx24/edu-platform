@@ -6,36 +6,30 @@
           <h2>个人资料</h2>
         </div>
       </template>
-      
+
       <div v-if="loading" class="loading-container">
         <el-skeleton :rows="6" animated />
       </div>
-      
+
       <div v-else class="profile-content">
         <div class="avatar-section">
           <div class="avatar-container">
-            <el-avatar :size="100" :src="userProfile.avatar || defaultAvatar">
+            <el-avatar :size="100" :src="avatarUrl">
               {{ userProfile.username ? userProfile.username.charAt(0).toUpperCase() : 'U' }}
             </el-avatar>
           </div>
-          <el-upload
-            class="avatar-uploader"
-            action="/edu/user/upload-avatar"
-            :headers="uploadHeaders"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload"
-          >
+          <el-upload class="avatar-uploader" action="/edu/userInfo/avatar" :headers="uploadHeaders"
+          :data="{ userId: userProfile.id }" :show-file-list="false" :on-success="handleAvatarSuccess" :before-upload="beforeAvatarUpload">
             <el-button size="small" type="primary">更换头像</el-button>
           </el-upload>
         </div>
-        
+
         <div class="info-section">
           <div class="info-header">
             <h3>基本信息</h3>
             <el-button type="primary" @click="editBasicInfo">编辑</el-button>
           </div>
-          
+
           <div class="info-content">
             <div class="info-item">
               <span class="info-label">用户名:</span>
@@ -64,13 +58,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="info-section">
           <div class="info-header">
             <h3>联系方式</h3>
             <el-button type="primary" @click="editContactInfo">编辑</el-button>
           </div>
-          
+
           <div class="info-content">
             <div class="info-item">
               <span class="info-label">手机号码:</span>
@@ -86,13 +80,13 @@
             </div>
           </div>
         </div>
-        
+
         <div v-if="userProfile.role === 'student'" class="info-section">
           <div class="info-header">
             <h3>学生信息</h3>
             <el-button type="primary" @click="editStudentInfo">编辑</el-button>
           </div>
-          
+
           <div class="info-content">
             <div class="info-item">
               <span class="info-label">学号:</span>
@@ -112,13 +106,13 @@
             </div>
           </div>
         </div>
-        
+
         <div v-if="userProfile.role === 'teacher'" class="info-section">
           <div class="info-header">
             <h3>教师信息</h3>
             <el-button type="primary" @click="editTeacherInfo">编辑</el-button>
           </div>
-          
+
           <div class="info-content">
             <div class="info-item">
               <span class="info-label">职称:</span>
@@ -134,25 +128,25 @@
             </div>
           </div>
         </div>
-        
+
         <div class="info-section">
           <div class="info-header">
             <h3>个人简介</h3>
             <el-button type="primary" @click="editBio">编辑</el-button>
           </div>
-          
+
           <div class="info-content">
             <div class="bio-content">
               {{ userProfile.bio || '暂无个人简介' }}
             </div>
           </div>
         </div>
-        
+
         <div class="info-section">
           <div class="info-header">
             <h3>安全设置</h3>
           </div>
-          
+
           <div class="security-content">
             <div class="security-item">
               <div class="security-info">
@@ -165,13 +159,9 @@
         </div>
       </div>
     </el-card>
-    
+
     <!-- 基本信息编辑对话框 -->
-    <el-dialog
-      v-model="basicInfoDialogVisible"
-      title="编辑基本信息"
-      width="500px"
-    >
+    <el-dialog v-model="basicInfoDialogVisible" title="编辑基本信息" width="500px">
       <el-form :model="basicInfoForm" :rules="basicInfoRules" ref="basicInfoFormRef" label-width="100px">
         <el-form-item label="真实姓名" prop="realName">
           <el-input v-model="basicInfoForm.realName" placeholder="请输入真实姓名" />
@@ -187,13 +177,9 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 联系方式编辑对话框 -->
-    <el-dialog
-      v-model="contactInfoDialogVisible"
-      title="编辑联系方式"
-      width="500px"
-    >
+    <el-dialog v-model="contactInfoDialogVisible" title="编辑联系方式" width="500px">
       <el-form :model="contactInfoForm" :rules="contactInfoRules" ref="contactInfoFormRef" label-width="100px">
         <el-form-item label="手机号码" prop="phone">
           <el-input v-model="contactInfoForm.phone" placeholder="请输入手机号码" />
@@ -212,13 +198,9 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 学生信息编辑对话框 -->
-    <el-dialog
-      v-model="studentInfoDialogVisible"
-      title="编辑学生信息"
-      width="500px"
-    >
+    <el-dialog v-model="studentInfoDialogVisible" title="编辑学生信息" width="500px">
       <el-form :model="studentInfoForm" :rules="studentInfoRules" ref="studentInfoFormRef" label-width="100px">
         <el-form-item label="学号" prop="studentId">
           <el-input v-model="studentInfoForm.studentId" placeholder="请输入学号" />
@@ -240,13 +222,9 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 教师信息编辑对话框 -->
-    <el-dialog
-      v-model="teacherInfoDialogVisible"
-      title="编辑教师信息"
-      width="500px"
-    >
+    <el-dialog v-model="teacherInfoDialogVisible" title="编辑教师信息" width="500px">
       <el-form :model="teacherInfoForm" :rules="teacherInfoRules" ref="teacherInfoFormRef" label-width="100px">
         <el-form-item label="职称" prop="title">
           <el-input v-model="teacherInfoForm.title" placeholder="请输入职称" />
@@ -265,21 +243,12 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 个人简介编辑对话框 -->
-    <el-dialog
-      v-model="bioDialogVisible"
-      title="编辑个人简介"
-      width="500px"
-    >
+    <el-dialog v-model="bioDialogVisible" title="编辑个人简介" width="500px">
       <el-form :model="bioForm" ref="bioFormRef" label-width="100px">
         <el-form-item label="个人简介">
-          <el-input 
-            v-model="bioForm.bio" 
-            type="textarea" 
-            :rows="6" 
-            placeholder="请输入个人简介"
-          />
+          <el-input v-model="bioForm.bio" type="textarea" :rows="6" placeholder="请输入个人简介" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -289,13 +258,9 @@
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 修改密码对话框 -->
-    <el-dialog
-      v-model="passwordDialogVisible"
-      title="修改密码"
-      width="500px"
-    >
+    <el-dialog v-model="passwordDialogVisible" title="修改密码" width="500px">
       <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px">
         <el-form-item label="当前密码" prop="oldPassword">
           <el-input v-model="passwordForm.oldPassword" type="password" show-password />
@@ -323,9 +288,11 @@ import { ElMessage } from 'element-plus';
 import { userApi } from '../../api/user';
 import { userinfoApi } from '../../api/userinfo';
 import { useAuthStore } from '../../store/auth';
+import { useRouter } from 'vue-router';
 import { UserFilled, School, Setting } from '@element-plus/icons-vue';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 // 默认头像
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
@@ -341,6 +308,13 @@ const uploadHeaders = computed(() => {
   return {
     Authorization: `Bearer ${localStorage.getItem('token')}`
   };
+});
+
+// 处理头像URL
+const avatarUrl = computed(() => {
+  if (!userProfile.value.avatar) return defaultAvatar;
+  const avatar = userProfile.value.avatar;
+  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
 });
 
 // 对话框显示状态
@@ -460,11 +434,11 @@ const fetchUserProfile = async () => {
     const basicInfo = await userApi.getUserInfo();
     // 获取详细用户信息（头像、真实姓名、联系方式等）
     const profileData = await userinfoApi.getUserProfile({ pageNum: 1, pageSize: 100 });
-    
+
     // 从返回的数据中找到当前用户的详细信息
     let userDetailInfo = {};
     const currentUserId = basicInfo.id;
-    
+
     // 遍历数字索引找到匹配的用户信息
     for (let key in profileData.records) {
       if (typeof profileData.records[key] === 'object' && profileData.records[key].userId === currentUserId) {
@@ -472,11 +446,9 @@ const fetchUserProfile = async () => {
         break;
       }
     }
-    console.log(userDetailInfo);
-    
+
     // 合并基本信息和详细信息
     userProfile.value = { ...basicInfo, ...userDetailInfo } || {};
-    console.log(userProfile.value);
   } catch (error) {
     console.error('获取用户资料失败:', error);
     ElMessage.error('获取用户资料失败');
@@ -487,11 +459,14 @@ const fetchUserProfile = async () => {
 
 // 处理头像上传成功
 const handleAvatarSuccess = (response) => {
-  if (response.code === 0) {
-    userProfile.value.avatar = response.data.url;
+  if (typeof response === 'string') {
+    userProfile.value.avatar = response;
+    ElMessage.success('头像上传成功');
+  } else if (response && response.code === 0) {
+    userProfile.value.avatar = response.data || response;
     ElMessage.success('头像上传成功');
   } else {
-    ElMessage.error(response.message || '头像上传失败');
+    ElMessage.error(response?.message || '头像上传失败');
   }
 };
 
@@ -522,7 +497,7 @@ const editBasicInfo = () => {
 // 保存基本信息
 const saveBasicInfo = async () => {
   if (!basicInfoFormRef.value) return;
-  
+
   await basicInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -551,7 +526,7 @@ const editContactInfo = () => {
 // 保存联系方式
 const saveContactInfo = async () => {
   if (!contactInfoFormRef.value) return;
-  
+
   await contactInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -581,7 +556,7 @@ const editStudentInfo = () => {
 // 保存学生信息
 const saveStudentInfo = async () => {
   if (!studentInfoFormRef.value) return;
-  
+
   await studentInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -610,7 +585,7 @@ const editTeacherInfo = () => {
 // 保存教师信息
 const saveTeacherInfo = async () => {
   if (!teacherInfoFormRef.value) return;
-  
+
   await teacherInfoFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -658,19 +633,38 @@ const showChangePasswordDialog = () => {
 // 修改密码
 const changePassword = async () => {
   if (!passwordFormRef.value) return;
-  
+
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        await userinfoApi.changePassword({
+        const res = await userApi.changePassword({
+          userId: userProfile.value.id,
           oldPassword: passwordForm.value.oldPassword,
           newPassword: passwordForm.value.newPassword
         });
-        ElMessage.success('密码修改成功');
-        passwordDialogVisible.value = false;
+        if (res.code !== 200) {
+          ElMessage.error(res.message || "操作失败")
+          return Promise.reject(new Error(res.message || "Error"))
+        } else {
+          ElMessage.success('密码修改成功，请重新登录');
+          passwordDialogVisible.value = false;
+          // 密码修改成功后，退出登录
+          setTimeout(async () => {
+            try {
+              authStore.logout();
+              // 跳转到登录页
+              router.push('/login');
+            } catch (logoutError) {
+              console.error('登出失败:', logoutError);
+              // 即使登出失败也要清除本地信息并跳转
+              localStorage.removeItem('token');
+              localStorage.removeItem('userInfo');
+              router.push('/login');
+            }
+          }, 1500); // 1.5秒后自动登出
+        }
       } catch (error) {
-        console.error('修改密码失败:', error);
-        ElMessage.error('修改密码失败');
+        console.log('修改密码失败');
       }
     }
   });
@@ -727,8 +721,15 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .profile-card {
@@ -933,7 +934,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
   z-index: 1;
 }
 
@@ -947,6 +948,7 @@ onMounted(() => {
   0% {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
+
   100% {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 5px rgba(255, 255, 255, 0.1);
   }
@@ -962,6 +964,7 @@ onMounted(() => {
   0% {
     transform: rotate(-5deg);
   }
+
   100% {
     transform: rotate(5deg);
   }
@@ -1000,6 +1003,7 @@ onMounted(() => {
   font-size: 15px;
   padding: 5px 15px;
 }
+
 .bio-content {
   grid-column: span 3;
   white-space: pre-wrap;
@@ -1108,11 +1112,11 @@ onMounted(() => {
   .info-content {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .bio-content {
     grid-column: span 2;
   }
-  
+
   .security-content {
     grid-column: span 2;
   }
@@ -1122,28 +1126,28 @@ onMounted(() => {
   .info-content {
     grid-template-columns: 1fr;
   }
-  
+
   .bio-content {
     grid-column: span 1;
   }
-  
+
   .security-content {
     grid-column: span 1;
   }
-  
+
   .profile-container {
     padding: 0 15px;
     margin: 15px auto;
   }
-  
+
   .profile-content {
     padding: 25px 15px;
   }
-  
+
   .card-header {
     padding: 15px 20px;
   }
-  
+
   .card-header h2 {
     font-size: 22px;
   }

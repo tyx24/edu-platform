@@ -1,9 +1,11 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowDown } from '@element-plus/icons-vue';
 import { useAuthStore } from './store/auth';
+import userinfoApi from './api/userinfo';
+
 
 const router = useRouter();
 const route = useRoute();
@@ -28,7 +30,14 @@ onMounted(async () => {
   if (AuthStore.token && !AuthStore.user) {
     await AuthStore.fetchUserInfo();
   }
+  // 获取用户详细资料
+  await fetchUserProfile();
 });
+
+// 响应式变量
+const loading = ref(false);
+const userProfile = ref({});
+const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
 
 // 动态菜单配置
 const menus = [
@@ -40,6 +49,41 @@ const menus = [
   { path: '/teacher', label: '教师中心', roles: ['teacher'] },
   { path: '/admin', label: '管理后台', roles: ['admin'] },
 ];
+
+// 获取用户资料
+const fetchUserProfile = async () => {
+  try {
+    loading.value = true;
+    // 获取详细用户信息（头像、真实姓名、联系方式等）
+    const profileData = await userinfoApi.getUserProfile({ pageNum: 1, pageSize: 100 });
+
+    // 从返回的数据中找到当前用户的详细信息
+    let userDetailInfo = {};
+    const currentUserId = AuthStore.user?.id;
+
+    // 遍历数字索引找到匹配的用户信息
+    for (let key in profileData.records) {
+      if (typeof profileData.records[key] === 'object' && profileData.records[key].userId === currentUserId) {
+        userDetailInfo = profileData.records[key];
+        break;
+      }
+    }
+    // 只保存详细用户信息
+    userProfile.value = userDetailInfo || {};
+  } catch (error) {
+    console.error('获取用户资料失败:', error);
+    ElMessage.error('获取用户资料失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 处理头像URL
+const avatarUrl = computed(() => {
+  if (!userProfile.value.avatar) return defaultAvatar;
+  const avatar = userProfile.value.avatar;
+  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
+});
 </script>
 
 <template>
@@ -67,7 +111,7 @@ const menus = [
           <div class="user-info">
             <el-dropdown @command="handleCommand">
               <span class="user-dropdown">
-                <img v-if="AuthStore.user?.avatar" :src="AuthStore.user.avatar" class="user-avatar" />
+                <img v-if="userProfile.avatar" :src="avatarUrl" class="user-avatar" />
                 <span v-else class="user-avatar-placeholder">{{ AuthStore.user?.username?.charAt(0)?.toUpperCase() }}</span>
                 {{ AuthStore.user?.username || '用户' }}
                 <el-icon>

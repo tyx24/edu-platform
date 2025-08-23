@@ -16,4 +16,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface IUserInfoService extends IService<UserInfo> {
 
     PageResult<UserInfo> getUserList(PageRequest request);
+
+    UserInfo getByUserId(Long userId);
 }

@@ -39,6 +39,11 @@ export const userApi = {
   // 获取用户信息
   getUserDetail: (userId) => {
     return request.get(`/user/${userId}`);
-  }
+  },
+
+  // 修改密码
+  changePassword: (passwordData) => {
+    return request.put('/user/password', passwordData);
+  },
 
 };

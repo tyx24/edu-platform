@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
+import com.education.platform.dto.PasswordDTO;
 import com.education.platform.entity.User;
 import com.education.platform.mapper.UserMapper;
 import com.education.platform.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.platform.util.JwtUtils;
 import com.education.platform.util.PageUtils;
+import com.education.platform.util.R;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -108,5 +110,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
                 result.getTotal(),
                 result.getRecords()
         );
+    }
+
+    @Override
+    public R<Object> changePassword(PasswordDTO dto) {
+        User user = userMapper.selectById(dto.getUserId());
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            return R.fail("旧密码错误");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        return R.ok(userMapper.updateById(user));
     }
 }
