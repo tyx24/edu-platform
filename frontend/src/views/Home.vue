@@ -139,6 +139,7 @@ import { userinfoApi } from '../api/userinfo';
 import { examApi } from '../api/exam';
 import { homeworkApi } from '../api/homework';
 import { commentApi } from '../api/comment';
+import { ro } from 'element-plus/es/locales.mjs';
 
 const authStore = useAuthStore();
 const { user } = authStore;
@@ -148,7 +149,7 @@ const hotCourses = ref([]);
 const loading = ref(true);
 const progress = ref(0);
 const userProfile = ref({});
-const defaultAvatar = '/edu/default-avatar.png';
+const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
 
 const statCards = computed(() => {
   const role = user?.role;
@@ -241,7 +242,16 @@ const fetchUserProfile = async () => {
 const avatarUrl = computed(() => {
   if (!userProfile.value.avatar) return defaultAvatar;
   const avatar = userProfile.value.avatar;
-  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
+  // 如果是完整的URL（http或https开头），直接返回
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  // 如果已经有/edu前缀，直接返回
+  if (avatar.startsWith('/edu')) {
+    return avatar;
+  }
+  // 否则添加/edu前缀
+  return `/edu${avatar}`;
 });
 
 onMounted(async () => {
@@ -287,7 +297,7 @@ onMounted(async () => {
       stats.value = { publishedCourses: myCourses?.length || 0, students: studentTotal, pending };
     } else if (role === "admin") {
       const courseList = await courseApi.getCourseList({ pageNum: 1, pageSize: 10 });
-      const userList = await userApi.getUserList({ pageNum: 1, pageSize: 10 });
+      const userList = await userApi.getUserList({ pageNum: 1, pageSize: 10 },'');
       let examTotal = 0;
       const courseAll = await courseApi.getCourseList({ pageNum: 1, pageSize: 100 });
       for (const c of courseAll?.records || []) {

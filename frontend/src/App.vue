@@ -29,9 +29,9 @@ const handleCommand = (command) => {
 onMounted(async () => {
   if (AuthStore.token && !AuthStore.user) {
     await AuthStore.fetchUserInfo();
+    // 获取用户详细资料
+    await fetchUserProfile();
   }
-  // 获取用户详细资料
-  await fetchUserProfile();
 });
 
 // 响应式变量
@@ -82,7 +82,16 @@ const fetchUserProfile = async () => {
 const avatarUrl = computed(() => {
   if (!userProfile.value.avatar) return defaultAvatar;
   const avatar = userProfile.value.avatar;
-  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
+  // 如果是完整的URL（http或https开头），直接返回
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  // 如果已经有/edu前缀，直接返回
+  if (avatar.startsWith('/edu')) {
+    return avatar;
+  }
+  // 否则添加/edu前缀
+  return `/edu${avatar}`;
 });
 </script>
 
@@ -100,8 +109,7 @@ const avatarUrl = computed(() => {
           <!-- 导航菜单 -->
           <el-menu mode="horizontal" :router="true" class="nav-menu" :default-active="route.path">
             <template v-for="item in menus" :key="item.path">
-              <el-menu-item v-if="item.roles.some(role => AuthStore.hasPermission(role))"
-                :index="item.path">
+              <el-menu-item v-if="item.roles.some(role => AuthStore.hasPermission(role))" :index="item.path">
                 {{ item.label }}
               </el-menu-item>
             </template>
@@ -112,7 +120,9 @@ const avatarUrl = computed(() => {
             <el-dropdown @command="handleCommand">
               <span class="user-dropdown">
                 <img v-if="userProfile.avatar" :src="avatarUrl" class="user-avatar" />
-                <span v-else class="user-avatar-placeholder">{{ AuthStore.user?.username?.charAt(0)?.toUpperCase() }}</span>
+                <span v-else class="user-avatar-placeholder">{{ AuthStore.user?.username?.charAt(0)?.toUpperCase() ||
+                  'U'
+                  }}</span>
                 {{ AuthStore.user?.username || '用户' }}
                 <el-icon>
                   <ArrowDown />
@@ -143,10 +153,10 @@ const avatarUrl = computed(() => {
 <style scoped>
 /* 头部背景：渐变 + 模糊玻璃效果 */
 .header {
-  background: linear-gradient(135deg, rgba(102,126,234,0.9) 0%, rgba(118,75,162,0.9) 100%);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
   backdrop-filter: blur(8px);
   color: white;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 /* 头部布局 */
@@ -174,7 +184,8 @@ const avatarUrl = computed(() => {
   flex: 1;
   display: flex;
   justify-content: center;
-  flex-wrap: wrap; /* 允许换行 */
+  flex-wrap: wrap;
+  /* 允许换行 */
 }
 
 /* 菜单项美化 */
@@ -191,7 +202,7 @@ const avatarUrl = computed(() => {
 .nav-menu .el-menu-item.is-active {
   background: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* 用户信息区 */
@@ -231,7 +242,7 @@ const avatarUrl = computed(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;

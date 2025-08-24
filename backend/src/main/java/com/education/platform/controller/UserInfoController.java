@@ -1,13 +1,16 @@
 package com.education.platform.controller;
 
+import com.education.platform.dto.BasicInfoDTO;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
 import com.education.platform.entity.UserInfo;
 import com.education.platform.service.IUserInfoService;
+import com.education.platform.util.R;
 import io.swagger.v3.oas.annotations.Operation;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,7 +29,7 @@ import java.time.format.DateTimeFormatter;
  */
 @RestController
 @RequestMapping("/userInfo")
-@Tag(name = "用户信息表",description = "提供用户信息查询")
+@Tag(name = "用户信息表", description = "提供用户信息查询和编辑")
 public class UserInfoController {
 
     @Autowired
@@ -84,6 +87,43 @@ public class UserInfoController {
         }
 
         return fileUrl;
+    }
+
+    // ========== 基本信息 ==========
+    @PostMapping("/updateBasicInfo")
+    @Operation(summary = "更新基本信息")
+    public R<Object> updateBasicInfo(@RequestBody BasicInfoDTO request) {
+        return userInfoService.updateBasicInfo(request);
+    }
+
+    // ========== 联系方式 ==========
+    @PostMapping("/updateContactInfo")
+    @Operation(summary = "更新联系方式")
+    public R<Object> updateContactInfo(@RequestBody UserInfo request) {
+        return userInfoService.updateContactInfo(request);
+    }
+
+    // ========== 学生信息 ==========
+    @PostMapping("/updateStudentInfo")
+    @Operation(summary = "更新学生信息")
+    @PreAuthorize("hasRole('student')")
+    public R<Object> updateStudentInfo(@RequestBody UserInfo request) {
+        return userInfoService.updateStudentInfo(request);
+    }
+
+    // ========== 教师信息 ==========
+    @PostMapping("/updateTeacherInfo")
+    @Operation(summary = "更新教师信息")
+    @PreAuthorize("hasRole('teacher')")
+    public R<Object> updateTeacherInfo(@RequestBody UserInfo request) {
+        return userInfoService.updateTeacherInfo(request);
+    }
+
+    // ========== 个人简介 ==========
+    @PostMapping("/updateBio")
+    @Operation(summary = "更新个人简介")
+    public R<Object> updateBio(@RequestBody UserInfo request) {
+        return userInfoService.updateBio(request);
     }
 
 }

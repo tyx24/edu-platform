@@ -97,7 +97,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         // 角色筛选
         if (role != null && !role.isEmpty()) {
-            System.out.println(query.eq(User::getRole, role));
             query.eq(User::getRole, role);
         }
 

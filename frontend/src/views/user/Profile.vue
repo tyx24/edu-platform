@@ -314,7 +314,16 @@ const uploadHeaders = computed(() => {
 const avatarUrl = computed(() => {
   if (!userProfile.value.avatar) return defaultAvatar;
   const avatar = userProfile.value.avatar;
-  return avatar.startsWith('/edu') ? avatar : `/edu${avatar}`;
+  // 如果是完整的URL（http或https开头），直接返回
+  if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+    return avatar;
+  }
+  // 如果已经有/edu前缀，直接返回
+  if (avatar.startsWith('/edu')) {
+    return avatar;
+  }
+  // 否则添加/edu前缀
+  return `/edu${avatar}`;
 });
 
 // 对话框显示状态

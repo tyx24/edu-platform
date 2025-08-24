@@ -50,7 +50,7 @@ export const homeworkApi = {
     return request.get('/submission/my');
   },
 
-  // ============================
+  // =====================================
   // 获取作业详情
   getHomeworkById: (id) => {
     return request.get(`/homework/${id}`);

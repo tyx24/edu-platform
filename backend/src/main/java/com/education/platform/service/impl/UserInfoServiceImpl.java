@@ -1,15 +1,22 @@
 package com.education.platform.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.education.platform.dto.BasicInfoDTO;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
+import com.education.platform.entity.User;
 import com.education.platform.entity.UserInfo;
 import com.education.platform.mapper.UserInfoMapper;
+import com.education.platform.mapper.UserMapper;
 import com.education.platform.service.IUserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.platform.util.PageUtils;
+import com.education.platform.util.R;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,7 +31,10 @@ import org.springframework.stereotype.Service;
 public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> implements IUserInfoService {
 
     @Autowired
-    private UserInfoMapper UserInfoMapper;
+    private UserInfoMapper userInfoMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public PageResult<UserInfo> getUserList(PageRequest request) {
@@ -41,7 +51,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
         query.orderByDesc(UserInfo::getId);
 
-        Page<UserInfo> result = UserInfoMapper.selectPage(page, query);
+        Page<UserInfo> result = userInfoMapper.selectPage(page, query);
 
         return new PageResult<>(
                 (int) result.getCurrent(),
@@ -57,4 +67,93 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                 .eq(UserInfo::getUserId, userId)
                 .one();
     }
+
+    @Override
+    public R<Object> updateBasicInfo(BasicInfoDTO request) {
+
+        Long userId = getUserId();
+        // 1. 更新 user_info 表里的 real_name
+        userInfoMapper.update(null,
+                new UpdateWrapper<UserInfo>()
+                        .eq("user_id", userId)
+                        .set("real_name", request.getRealName())
+        );
+
+        // 2. 更新 user 表里的 email
+        userMapper.update(null,
+                new UpdateWrapper<User>()
+                        .eq("id", userId)
+                        .set("email", request.getEmail())
+        );
+
+        return R.ok();
+    }
+
+    @Override
+    public R<Object> updateContactInfo(UserInfo request) {
+
+        Long userId = getUserId();
+        userInfoMapper.update(null,
+                new UpdateWrapper<UserInfo>()
+                        .eq("user_id", userId)
+                        .set("phone", request.getPhone())
+                        .set("qq", request.getQq())
+                        .set("wechat", request.getWechat())
+        );
+        return R.ok();
+    }
+
+    @Override
+    public R<Object> updateStudentInfo(UserInfo request) {
+
+        Long userId = getUserId();
+        userInfoMapper.update(null,
+                new UpdateWrapper<UserInfo>()
+                        .eq("user_id", userId)
+                        .set("student_id", request.getStudentId())
+                        .set("department", request.getDepartment())
+                        .set("major", request.getMajor())
+                        .set("grade", request.getGrade())
+        );
+        return R.ok();
+    }
+
+    @Override
+    public R<Object> updateTeacherInfo(UserInfo request) {
+
+        Long userId = getUserId();
+        userInfoMapper.update(null,
+                new UpdateWrapper<UserInfo>()
+                        .eq("user_id", userId)
+                        .set("title", request.getTitle())
+                        .set("department", request.getDepartment())
+                        .set("research", request.getResearch())
+        );
+        return R.ok();
+    }
+
+    @Override
+    public R<Object> updateBio(UserInfo request) {
+
+        Long userId = getUserId();
+        userInfoMapper.update(null,
+                new UpdateWrapper<UserInfo>()
+                        .eq("user_id", userId)
+                        .set("bio", request.getBio())
+        );
+        return R.ok();
+    }
+
+    // 获取当前id
+    private Long getUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        long userId;
+        try {
+            userId = Long.parseLong(auth.getName());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("当前用户信息异常");
+        }
+        return userId;
+    }
+
 }
