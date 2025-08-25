@@ -21,11 +21,11 @@
             <el-select v-model="searchForm.category" placeholder="📚 选择分类" clearable @change="handleSearch" size="large"
               class="search-select">
               <el-option label="全部分类" value="" />
-              <el-option label="💻 前端开发" value="frontend" />
-              <el-option label="⚙️ 后端开发" value="backend" />
-              <el-option label="📱 移动开发" value="mobile" />
-              <el-option label="📊 大数据" value="big-data" />
-              <el-option label="🤖 机器学习" value="machine-learning" />
+              <el-option label="💻 前端开发" value="前端开发" />
+              <el-option label="⚙️ 后端开发" value="后端开发" />
+              <el-option label="📱 移动开发" value="移动开发" />
+              <el-option label="📊 大数据" value="大数据" />
+              <el-option label="🤖 机器学习" value="机器学习" />
             </el-select>
           </el-col>
           <el-col :span="5">
@@ -70,6 +70,9 @@
               <div class="course-content">
                 <div class="course-header">
                   <h3 class="course-title">{{ course.title }}</h3>
+                </div>
+                <hr/>
+                <div class="course-rating-info">
                   <div class="course-rating">
                     <div class="stars">
                       <el-rate :model-value="course.avgRating / 2" disabled text-color="#ff9900" size="small" />
@@ -184,11 +187,7 @@ const fetchCourseList = async () => {
         delete params[key];
       }
     });
-
-    console.log('请求参数:', params);
     const response = await courseApi.getCourseList(params);
-    console.log('API响应:', response);
-
     const courses = response.records || [];
 
     // 获取每个课程的教师名称和评分信息
@@ -525,6 +524,10 @@ onMounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.course-rating-info {
+  margin-left:110px ; 
 }
 
 .course-rating {

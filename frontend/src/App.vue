@@ -43,7 +43,7 @@ const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726
 const menus = [
   { path: '/home', label: '首页', roles: ['student', 'teacher', 'admin'] },
   { path: '/courses', label: '课程中心', roles: ['student', 'teacher', 'admin'] },
-  { path: '/my-courses', label: '我的课程', roles: ['student'] },
+  { path: '/my-courses', label: '我的课程', roles: ['student', 'teacher'] },
   { path: '/exam-center', label: '考试中心', roles: ['student', 'teacher'] },
   { path: '/homework-center', label: '作业中心', roles: ['student', 'teacher'] },
   { path: '/teacher', label: '教师中心', roles: ['teacher'] },

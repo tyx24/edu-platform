@@ -102,6 +102,11 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             query.eq(Course::getState, request.getState());
         }
 
+        // 类别筛选
+        if (request.getCategory() != null) {
+            query.eq(Course::getCategory, request.getCategory());
+        }
+
         query.orderByDesc(Course::getAuditTime);
 
         Page<Course> result = courseMapper.selectPage(page, query);

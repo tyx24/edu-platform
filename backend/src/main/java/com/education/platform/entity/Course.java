@@ -60,6 +60,11 @@ public class Course implements Serializable {
     private String description;
 
     /**
+     * 最大学生人数
+     */
+    private Integer maxStudents;
+
+    /**
      * 0待审核 1已发布 2关闭
      */
     private Byte state;

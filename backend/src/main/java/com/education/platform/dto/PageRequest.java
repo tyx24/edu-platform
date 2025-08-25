@@ -15,5 +15,8 @@ public class PageRequest {
 
     /** 状态筛选（例如：已发布、待审核等） */
     private Integer state;
+
+    /** 类别筛选 */
+    private String category;
 }
 

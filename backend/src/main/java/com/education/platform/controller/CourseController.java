@@ -138,7 +138,7 @@ public class CourseController {
      * 分页查询课程
      * - 支持关键词搜索、状态筛选、按教师ID或学生ID筛选
      */
-    @Operation(summary = "分页查询课程", description = "支持关键词搜索、状态筛选")
+    @Operation(summary = "分页查询课程", description = "支持关键词搜索、状态筛选、类别筛选")
     @ApiResponse(responseCode = "200", description = "查询成功")
     @PostMapping("/list")
     public PageResult<Course> getCourseList(@RequestBody PageRequest request) {
