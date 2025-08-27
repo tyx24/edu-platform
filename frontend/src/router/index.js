@@ -39,6 +39,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/course/:courseId/chapter/:chapterId',
+    name: 'ChapterDetail',
+    component: () => import('../views/course/ChapterDetail.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/course/create',
     name: 'CourseCreate',
     component: () => import('../views/course/CourseForm.vue'),

@@ -22,23 +22,18 @@
           <div class="course-description">
             {{ course.description }}
           </div>
-          
+
           <!-- 选课按钮 -->
           <div class="action-buttons" v-if="authStore.hasPermission('student')">
-            <el-button 
-              type="primary" 
-              size="large" 
-              @click="enrollCourse" 
-              :disabled="isEnrolled || enrolling"
-              :loading="enrolling"
-            >
+            <el-button type="primary" size="large" @click="enrollCourse" :disabled="isEnrolled || enrolling"
+              :loading="enrolling">
               {{ isEnrolled ? '已选课' : '选课' }}
             </el-button>
           </div>
         </el-col>
         <el-col :span="8">
           <div class="course-cover">
-            <img :src="course.coverImage || '/default-course.jpg'" :alt="course.title">
+            <img :src="course.coverUrl || '/default-course.jpg'" :alt="course.title">
           </div>
         </el-col>
       </el-row>
@@ -50,16 +45,10 @@
         <!-- 章节内容 -->
         <el-tab-pane label="章节内容" name="chapters">
           <div class="chapter-list">
-            <el-tree
-              :data="chapterTree"
-              :props="{
-                label: 'title',
-                children: 'children'
-              }"
-              node-key="id"
-              :expand-on-click-node="false"
-              @node-click="handleNodeClick"
-            >
+            <el-tree :data="chapterTree" :props="{
+              label: 'title',
+              children: 'children'
+            }" node-key="id" :expand-on-click-node="false" @node-click="handleNodeClick">
               <template #default="{ node, data }">
                 <div class="chapter-node">
                   <span class="node-label">
@@ -67,41 +56,28 @@
                     <i class="el-icon-document" v-else></i>
                     {{ node.label }}
                   </span>
-                  
+
                   <!-- 教师可以编辑章节 -->
                   <div class="node-actions" v-if="isTeacher && data.type === 'chapter'">
                     <el-button type="text" size="small" @click.stop="editChapter(data)">
                       编辑
                     </el-button>
-                    <el-button type="text" size="small" @click.stop="addSubChapter(data)">
+                    <!-- 只有根章节和一级子章节可以添加子章节，子章节的子章节不能再添加子章节 -->
+                    <el-button v-if="data.parentId === 0 || (data.parentId !== 0 && !isSubSubChapter(data))" type="text"
+                      size="small" @click.stop="addSubChapter(data)">
                       添加子章节
                     </el-button>
-                    <el-button type="text" size="small" @click.stop="addResource(data)">
-                      添加资源
-                    </el-button>
+
                     <el-button type="text" size="small" @click.stop="deleteChapter(data)">
                       删除
                     </el-button>
                   </div>
-                  
-                  <!-- 资源操作 -->
-                  <div class="node-actions" v-if="data.type === 'resource'">
-                    <el-button type="text" size="small" @click.stop="viewResource(data)">
-                      查看
-                    </el-button>
-                    <el-button 
-                      v-if="isTeacher" 
-                      type="text" 
-                      size="small" 
-                      @click.stop="deleteResource(data)"
-                    >
-                      删除
-                    </el-button>
-                  </div>
+
+
                 </div>
               </template>
             </el-tree>
-            
+
             <!-- 教师可以添加章节 -->
             <div class="add-chapter" v-if="isTeacher">
               <el-button type="primary" @click="addRootChapter">
@@ -110,7 +86,7 @@
             </div>
           </div>
         </el-tab-pane>
-        
+
         <!-- 课程评论 -->
         <el-tab-pane label="课程评论" name="comments">
           <div class="comments-section">
@@ -118,39 +94,31 @@
             <div class="comments-stats" v-if="commentStats">
               <div class="rating-overview">
                 <div class="average-rating">
-                  <span class="rating-number">{{ commentStats.averageRating || 0 }}</span>
+                  <span class="rating-number">{{ commentStats.avgRating || 0 }}</span>
                   <div class="rating-stars">
-                    <el-rate
-                      v-model="commentStats.averageRating"
-                      disabled
-                      show-score
-                      text-color="#ff9900"
-                    />
+                    <el-rate :model-value="commentStats.avgRating / 2" disabled show-score text-color="#ff9900"
+                      :size="10" />
                   </div>
                   <div class="total-ratings">{{ commentStats.totalComments || 0 }} 条评价</div>
                 </div>
-                
+
                 <div class="rating-distribution">
                   <div class="rating-bar" v-for="i in 5" :key="i">
                     <span class="star-level">{{ i }} 星</span>
-                    <el-progress 
-                      :percentage="getPercentage(i)" 
-                      :stroke-width="12" 
-                      :show-text="false" 
-                      :color="'#ffd04b'"
-                    />
+                    <el-progress :percentage="getPercentage(i)" :stroke-width="12" :show-text="false"
+                      :color="'#ffd04b'" />
                     <span class="percentage">{{ getPercentage(i) }}%</span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <!-- 评论列表 -->
             <div class="comments-list">
               <div v-if="comments.length === 0" class="no-comments">
                 暂无评论，快来发表第一条评论吧！
               </div>
-              
+
               <div v-else class="comment-item" v-for="comment in comments" :key="comment.id">
                 <div class="comment-header">
                   <div class="user-info">
@@ -158,11 +126,7 @@
                     <span class="username">{{ comment.username }}</span>
                   </div>
                   <div class="comment-rating">
-                    <el-rate
-                      v-model="comment.rating"
-                      disabled
-                      text-color="#ff9900"
-                    />
+                    <el-rate v-model="comment.rating" disabled text-color="#ff9900" />
                   </div>
                 </div>
                 <div class="comment-content">
@@ -173,25 +137,16 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- 添加评论 -->
             <div class="add-comment" v-if="isEnrolled">
               <h3>发表评论</h3>
               <el-form :model="commentForm" :rules="commentRules" ref="commentFormRef">
                 <el-form-item prop="rating">
-                  <el-rate
-                    v-model="commentForm.rating"
-                    show-text
-                    :texts="['很差', '较差', '一般', '较好', '很好']"
-                  />
+                  <el-rate v-model="commentForm.rating" show-text :texts="['很差', '较差', '一般', '较好', '很好']" />
                 </el-form-item>
                 <el-form-item prop="content">
-                  <el-input
-                    v-model="commentForm.content"
-                    type="textarea"
-                    :rows="4"
-                    placeholder="请输入您对课程的评价"
-                  />
+                  <el-input v-model="commentForm.content" type="textarea" :rows="4" placeholder="请输入您对课程的评价" />
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" @click="submitComment" :loading="submittingComment">
@@ -202,7 +157,7 @@
             </div>
           </div>
         </el-tab-pane>
-        
+
         <!-- 考试列表 -->
         <el-tab-pane label="考试" name="exams" v-if="isEnrolled || isTeacher">
           <div class="exams-section">
@@ -212,7 +167,7 @@
                 创建考试
               </el-button>
             </div>
-            
+
             <el-table :data="exams" style="width: 100%">
               <el-table-column prop="title" label="考试名称" />
               <el-table-column prop="startTime" label="开始时间">
@@ -232,28 +187,13 @@
               </el-table-column>
               <el-table-column label="操作">
                 <template #default="scope">
-                  <el-button 
-                    v-if="isStudent" 
-                    type="primary" 
-                    size="small" 
-                    @click="takeExam(scope.row)"
-                  >
+                  <el-button v-if="isStudent" type="primary" size="small" @click="takeExam(scope.row)">
                     参加考试
                   </el-button>
-                  <el-button 
-                    v-if="isTeacher" 
-                    type="primary" 
-                    size="small" 
-                    @click="editExam(scope.row)"
-                  >
+                  <el-button v-if="isTeacher" type="primary" size="small" @click="editExam(scope.row)">
                     编辑
                   </el-button>
-                  <el-button 
-                    v-if="isTeacher" 
-                    type="danger" 
-                    size="small" 
-                    @click="deleteExam(scope.row)"
-                  >
+                  <el-button v-if="isTeacher" type="danger" size="small" @click="deleteExam(scope.row)">
                     删除
                   </el-button>
                 </template>
@@ -261,7 +201,7 @@
             </el-table>
           </div>
         </el-tab-pane>
-        
+
         <!-- 作业列表 -->
         <el-tab-pane label="作业" name="homework" v-if="isEnrolled || isTeacher">
           <div class="homework-section">
@@ -271,7 +211,7 @@
                 创建作业
               </el-button>
             </div>
-            
+
             <el-table :data="homeworks" style="width: 100%">
               <el-table-column prop="title" label="作业名称" />
               <el-table-column prop="deadline" label="截止日期">
@@ -288,28 +228,13 @@
               </el-table-column>
               <el-table-column label="操作">
                 <template #default="scope">
-                  <el-button 
-                    v-if="isStudent" 
-                    type="primary" 
-                    size="small" 
-                    @click="viewHomework(scope.row)"
-                  >
+                  <el-button v-if="isStudent" type="primary" size="small" @click="viewHomework(scope.row)">
                     查看作业
                   </el-button>
-                  <el-button 
-                    v-if="isTeacher" 
-                    type="primary" 
-                    size="small" 
-                    @click="editHomework(scope.row)"
-                  >
+                  <el-button v-if="isTeacher" type="primary" size="small" @click="editHomework(scope.row)">
                     编辑
                   </el-button>
-                  <el-button 
-                    v-if="isTeacher" 
-                    type="danger" 
-                    size="small" 
-                    @click="deleteHomework(scope.row)"
-                  >
+                  <el-button v-if="isTeacher" type="danger" size="small" @click="deleteHomework(scope.row)">
                     删除
                   </el-button>
                 </template>
@@ -319,27 +244,15 @@
         </el-tab-pane>
       </el-tabs>
     </div>
-    
+
     <!-- 章节编辑对话框 -->
-    <el-dialog
-      v-model="chapterDialogVisible"
-      :title="chapterForm.id ? '编辑章节' : '添加章节'"
-      width="50%"
-    >
+    <el-dialog v-model="chapterDialogVisible" :title="getChapterDialogTitle()" width="50%">
       <el-form :model="chapterForm" label-width="80px" :rules="chapterRules" ref="chapterFormRef">
         <el-form-item label="章节名称" prop="title">
           <el-input v-model="chapterForm.title" placeholder="请输入章节名称" />
         </el-form-item>
-        <el-form-item label="章节描述" prop="description">
-          <el-input 
-            v-model="chapterForm.description" 
-            type="textarea" 
-            :rows="3" 
-            placeholder="请输入章节描述"
-          />
-        </el-form-item>
-        <el-form-item label="排序" prop="sort">
-          <el-input-number v-model="chapterForm.sort" :min="1" :max="100" />
+        <el-form-item label="排序" prop="orderNum">
+          <el-input-number v-model="chapterForm.orderNum" :min="1" :max="999" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -351,53 +264,8 @@
         </span>
       </template>
     </el-dialog>
-    
-    <!-- 资源上传对话框 -->
-    <el-dialog
-      v-model="resourceDialogVisible"
-      title="上传资源"
-      width="50%"
-    >
-      <el-form :model="resourceForm" label-width="80px" :rules="resourceRules" ref="resourceFormRef">
-        <el-form-item label="资源名称" prop="title">
-          <el-input v-model="resourceForm.title" placeholder="请输入资源名称" />
-        </el-form-item>
-        <el-form-item label="资源类型" prop="type">
-          <el-select v-model="resourceForm.type" placeholder="请选择资源类型">
-            <el-option label="文档" value="document" />
-            <el-option label="视频" value="video" />
-            <el-option label="音频" value="audio" />
-            <el-option label="图片" value="image" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="资源文件" prop="file">
-          <el-upload
-            class="resource-uploader"
-            action="/edu/resource/upload"
-            :headers="uploadHeaders"
-            :on-success="handleResourceUploadSuccess"
-            :before-upload="beforeResourceUpload"
-            :limit="1"
-          >
-            <el-button type="primary">点击上传</el-button>
-            <template #tip>
-              <div class="el-upload__tip">
-                支持各种类型的文件，大小不超过50MB
-              </div>
-            </template>
-          </el-upload>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="resourceDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveResource" :loading="savingResource">
-            保存
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+
+
   </div>
 </template>
 
@@ -446,21 +314,10 @@ const chapterForm = reactive({
   courseId: '',
   parentId: '',
   title: '',
-  description: '',
-  sort: 1
+  orderNum: 1
 });
 
-// 资源对话框
-const resourceDialogVisible = ref(false);
-const resourceFormRef = ref(null);
-const savingResource = ref(false);
-const resourceForm = reactive({
-  chapterId: '',
-  title: '',
-  type: '',
-  url: '',
-  file: null
-});
+
 
 // 评论表单
 const commentFormRef = ref(null);
@@ -477,20 +334,13 @@ const chapterRules = {
     { required: true, message: '请输入章节名称', trigger: 'blur' },
     { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
   ],
-  description: [
-    { max: 200, message: '长度不能超过 200 个字符', trigger: 'blur' }
+  orderNum: [
+    { required: true, message: '请输入排序号', trigger: 'blur' },
+    { type: 'number', min: 1, max: 999, message: '排序号必须在1-999之间', trigger: 'blur' }
   ]
 };
 
-const resourceRules = {
-  title: [
-    { required: true, message: '请输入资源名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  type: [
-    { required: true, message: '请选择资源类型', trigger: 'change' }
-  ]
-};
+
 
 const commentRules = {
   rating: [
@@ -502,19 +352,14 @@ const commentRules = {
   ]
 };
 
-// 上传文件的请求头
-const uploadHeaders = computed(() => {
-  return {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  };
-});
+
 
 // 获取课程详情
 const fetchCourseDetail = async () => {
   try {
     loading.value = true;
     const res = await courseApi.getCourseDetail(courseId.value);
-    course.value = res.data;
+    course.value = res.course;
     commentForm.courseId = courseId.value;
   } catch (error) {
     console.error('获取课程详情失败:', error);
@@ -528,7 +373,35 @@ const fetchCourseDetail = async () => {
 const fetchChapterTree = async () => {
   try {
     const res = await courseApi.getChapterTree(courseId.value);
-    chapterTree.value = res.data || [];
+
+    // 为章节数据添加type字段
+    const processChapterData = (chapters) => {
+      return chapters.map(chapter => {
+        const processedChapter = {
+          ...chapter,
+          type: 'chapter' // 为章节添加type标识
+        };
+
+        // 递归处理子章节
+        if (chapter.children && chapter.children.length > 0) {
+          processedChapter.children = chapter.children.map(child => {
+            const childChapter = {
+              ...child,
+              type: 'chapter'
+            };
+            
+            // 如果子章节还有子章节，递归处理
+            if (child.children && child.children.length > 0) {
+              childChapter.children = processChapterData([child])[0].children;
+            }
+            return childChapter;
+          });
+        }
+        return processedChapter;
+      });
+    };
+
+    chapterTree.value = processChapterData(res.data || []);
   } catch (error) {
     console.error('获取章节树失败:', error);
     ElMessage.error('获取章节树失败');
@@ -539,7 +412,7 @@ const fetchChapterTree = async () => {
 const fetchComments = async () => {
   try {
     const res = await commentApi.getCourseComments(courseId.value);
-    comments.value = res.data || [];
+    comments.value = res || [];
   } catch (error) {
     console.error('获取课程评论失败:', error);
     ElMessage.error('获取课程评论失败');
@@ -550,10 +423,10 @@ const fetchComments = async () => {
 const fetchCommentStats = async () => {
   try {
     const res = await commentApi.getCommentStats(courseId.value);
-    commentStats.value = res.data || {
-      averageRating: 0,
+    commentStats.value = res || {
+      avgRating: 0,
       totalComments: 0,
-      ratingDistribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+      ratingDistribution: { 2: 0, 4: 0, 6: 0, 8: 0, 10: 0 }
     };
   } catch (error) {
     console.error('获取评论统计失败:', error);
@@ -575,7 +448,7 @@ const fetchExams = async () => {
 // 获取作业列表
 const fetchHomeworks = async () => {
   try {
-    const res = await homeworkApi.getCourseHomeworks(courseId.value);
+    const res = await homeworkApi.getCourseHomework(courseId.value);
     homeworks.value = res.data || [];
   } catch (error) {
     console.error('获取作业列表失败:', error);
@@ -587,8 +460,8 @@ const fetchHomeworks = async () => {
 const checkEnrollment = async () => {
   try {
     const res = await enrollmentApi.getMyCourses();
-    const courses = res.data || [];
-    isEnrolled.value = courses.some(c => c.id === courseId.value);
+    const courses = res || [];
+    isEnrolled.value = courses.some(course => course.id == courseId.value);
   } catch (error) {
     console.error('检查选课状态失败:', error);
   }
@@ -612,7 +485,7 @@ const enrollCourse = async () => {
 // 提交评论
 const submitComment = async () => {
   if (!commentFormRef.value) return;
-  
+
   await commentFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -637,8 +510,9 @@ const submitComment = async () => {
 
 // 章节树节点点击
 const handleNodeClick = (data) => {
-  if (data.type === 'resource') {
-    viewResource(data);
+  if (data.type === 'chapter') {
+    // 点击章节节点时跳转到章节详情界面
+    router.push(`/course/${courseId.value}/chapter/${data.id}`);
   }
 };
 
@@ -646,10 +520,9 @@ const handleNodeClick = (data) => {
 const addRootChapter = () => {
   chapterForm.id = '';
   chapterForm.courseId = courseId.value;
-  chapterForm.parentId = '0';
+  chapterForm.parentId = 0;
   chapterForm.title = '';
-  chapterForm.description = '';
-  chapterForm.sort = 1;
+  chapterForm.orderNum = 1;
   chapterDialogVisible.value = true;
 };
 
@@ -659,8 +532,7 @@ const addSubChapter = (parentChapter) => {
   chapterForm.courseId = courseId.value;
   chapterForm.parentId = parentChapter.id;
   chapterForm.title = '';
-  chapterForm.description = '';
-  chapterForm.sort = 1;
+  chapterForm.orderNum = 1;
   chapterDialogVisible.value = true;
 };
 
@@ -670,15 +542,51 @@ const editChapter = (chapter) => {
   chapterForm.courseId = chapter.courseId;
   chapterForm.parentId = chapter.parentId;
   chapterForm.title = chapter.title;
-  chapterForm.description = chapter.description;
-  chapterForm.sort = chapter.sort;
+  chapterForm.orderNum = chapter.orderNum;
   chapterDialogVisible.value = true;
+};
+
+// 获取章节对话框标题
+const getChapterDialogTitle = () => {
+  if (chapterForm.id) {
+    return '编辑章节';
+  } else if (chapterForm.parentId === 0) {
+    return '添加根章节';
+  } else {
+    return '添加子章节';
+  }
+};
+
+// 判断是否为子章节的子章节（第三层级）
+const isSubSubChapter = (chapter) => {
+  // 如果章节的parentId不为0，说明它是子章节
+  // 需要在章节树中查找其父章节，如果父章节的parentId也不为0，则当前章节为子章节的子章节
+  if (chapter.parentId === 0) {
+    return false; // 根章节
+  }
+
+  // 在章节树中查找父章节
+  const findParentChapter = (chapters, targetId) => {
+    for (const ch of chapters) {
+      if (ch.id === targetId) {
+        return ch;
+      }
+      if (ch.children && ch.children.length > 0) {
+        const found = findParentChapter(ch.children, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const parentChapter = findParentChapter(chapterTree.value, chapter.parentId);
+  return parentChapter && parentChapter.parentId !== 0;
 };
 
 // 保存章节
 const saveChapter = async () => {
   if (!chapterFormRef.value) return;
-  
+
   await chapterFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
@@ -717,7 +625,7 @@ const deleteChapter = async (chapter) => {
         type: 'warning',
       }
     );
-    
+
     await courseApi.deleteChapter(chapter.id);
     ElMessage.success('章节删除成功');
     // 刷新章节树
@@ -730,93 +638,7 @@ const deleteChapter = async (chapter) => {
   }
 };
 
-// 添加资源
-const addResource = (chapter) => {
-  resourceForm.chapterId = chapter.id;
-  resourceForm.title = '';
-  resourceForm.type = '';
-  resourceForm.url = '';
-  resourceForm.file = null;
-  resourceDialogVisible.value = true;
-};
 
-// 上传资源前的验证
-const beforeResourceUpload = (file) => {
-  const isLt50M = file.size / 1024 / 1024 < 50;
-  if (!isLt50M) {
-    ElMessage.error('上传文件大小不能超过 50MB!');
-  }
-  return isLt50M;
-};
-
-// 资源上传成功回调
-const handleResourceUploadSuccess = (res) => {
-  if (res.code === 200) {
-    resourceForm.url = res.data.url;
-    ElMessage.success('文件上传成功');
-  } else {
-    ElMessage.error(res.message || '文件上传失败');
-  }
-};
-
-// 保存资源
-const saveResource = async () => {
-  if (!resourceFormRef.value) return;
-  
-  await resourceFormRef.value.validate(async (valid) => {
-    if (valid) {
-      if (!resourceForm.url) {
-        ElMessage.warning('请先上传资源文件');
-        return;
-      }
-      
-      try {
-        savingResource.value = true;
-        // 创建资源记录
-        await courseApi.createResource(resourceForm);
-        ElMessage.success('资源添加成功');
-        resourceDialogVisible.value = false;
-        // 刷新章节树
-        fetchChapterTree();
-      } catch (error) {
-        console.error('保存资源失败:', error);
-        ElMessage.error('保存资源失败');
-      } finally {
-        savingResource.value = false;
-      }
-    }
-  });
-};
-
-// 查看资源
-const viewResource = (resource) => {
-  window.open(resource.url, '_blank');
-};
-
-// 删除资源
-const deleteResource = async (resource) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除该资源吗？删除后将无法恢复。',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-    
-    await courseApi.deleteResource(resource.id);
-    ElMessage.success('资源删除成功');
-    // 刷新章节树
-    fetchChapterTree();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除资源失败:', error);
-      ElMessage.error('删除资源失败');
-    }
-  }
-};
 
 // 创建考试
 const createExam = () => {
@@ -840,7 +662,7 @@ const deleteExam = async (exam) => {
         type: 'warning',
       }
     );
-    
+
     await examApi.deleteExam(exam.id);
     ElMessage.success('考试删除成功');
     // 刷新考试列表
@@ -880,7 +702,7 @@ const deleteHomework = async (homework) => {
         type: 'warning',
       }
     );
-    
+
     await homeworkApi.deleteHomework(homework.id);
     ElMessage.success('作业删除成功');
     // 刷新作业列表
@@ -962,7 +784,7 @@ onMounted(async () => {
   await fetchCommentStats();
   await fetchExams();
   await fetchHomeworks();
-  
+
   if (isStudent.value) {
     await checkEnrollment();
   }
@@ -1183,10 +1005,5 @@ onMounted(async () => {
 
 .section-header h3 {
   margin: 0;
-}
-
-/* 资源上传 */
-.resource-uploader {
-  width: 100%;
 }
 </style>

@@ -2,8 +2,8 @@ package com.education.platform.controller;
 
 import com.education.platform.entity.Chapter;
 import com.education.platform.service.IChapterService;
+import com.education.platform.util.R;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,28 +34,25 @@ public class ChapterController {
     @ApiResponse(responseCode = "200", description = "章节创建成功")
     @PreAuthorize("hasAnyRole('teacher','admin')")
     @PostMapping("/create")
-    public Chapter create(
-            @Parameter(description = "章节信息", required = true)
-            @RequestBody Chapter chapter) {
-        saveChapterRecursive(chapter, null);
-        return chapter;
+    public R<Chapter> create(@RequestBody Chapter chapter) {
+        try {
+            saveChapterRecursive(chapter, null);
+            return R.ok(chapter);
+        } catch (Exception e) {
+            return R.fail("创建章节失败: " + e.getMessage());
+        }
     }
 
-    /**
-     * 递归保存章节及其子章节
-     */
     private void saveChapterRecursive(Chapter chapter, Long parentId) {
-        // 设置父ID
-        chapter.setParentId(parentId == null ? 0L : parentId);
-
-        // 保存父章节
+        if (chapter.getParentId() == null || chapter.getParentId() == 0) {
+            chapter.setParentId(parentId == null ? 0L : parentId);
+        }
         chapterService.save(chapter);
 
-        // 保存子章节
         if (chapter.getChildren() != null && !chapter.getChildren().isEmpty()) {
             for (Chapter child : chapter.getChildren()) {
-                child.setCourseId(chapter.getCourseId()); // 子章节继承课程ID
-                saveChapterRecursive(child, chapter.getId()); // 递归保存
+                child.setCourseId(chapter.getCourseId());
+                saveChapterRecursive(child, chapter.getId());
             }
         }
     }
@@ -63,37 +60,29 @@ public class ChapterController {
     /**
      * 更新章节
      */
-    @Operation(summary = "更新章节", description = "教师或管理员修改已有课程章节")
-    @ApiResponse(responseCode = "200", description = "章节更新成功")
-    @PreAuthorize("hasAnyRole('teacher','admin')")
     @PutMapping("/update/{id}")
-    public boolean update(
-            @Parameter(description = "章节ID", example = "1") @PathVariable Long id,
-            @Parameter(description = "新的章节信息") @RequestBody Chapter chapter) {
+    public R<Boolean> update(@PathVariable Long id, @RequestBody Chapter chapter) {
         chapter.setId(id);
-        return chapterService.updateById(chapter);
+        boolean success = chapterService.updateById(chapter);
+        return success ? R.ok(true) : R.fail("章节更新失败");
     }
 
     /**
      * 删除章节
      */
-    @Operation(summary = "删除章节", description = "教师或管理员删除课程章节")
-    @ApiResponse(responseCode = "200", description = "章节删除成功")
-    @PreAuthorize("hasAnyRole('teacher','admin')")
     @DeleteMapping("/delete/{id}")
-    public boolean delete(
-            @Parameter(description = "章节ID", example = "1") @PathVariable Long id) {
-        return chapterService.removeById(id);
+    public R<Boolean> delete(@PathVariable Long id) {
+        boolean success = chapterService.removeById(id);
+        return success ? R.ok(true) : R.fail("章节删除失败");
     }
 
     /**
      * 获取章节树
      */
-    @Operation(summary = "获取章节树", description = "根据课程ID获取章节树结构")
-    @ApiResponse(responseCode = "200", description = "获取成功")
     @GetMapping("/tree/{courseId}")
-    public List<Chapter> getTree(
-            @Parameter(description = "课程ID", example = "1") @PathVariable Long courseId) {
-        return chapterService.getChapterTree(courseId);
+    public R<List<Chapter>> getTree(@PathVariable Long courseId) {
+        List<Chapter> chapters = chapterService.getChapterTree(courseId);
+        return R.ok(chapters);
     }
 }
+

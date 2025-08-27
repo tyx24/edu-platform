@@ -1,7 +1,7 @@
 <template>
   <transition name="page-fade" appear>
-    <div class="my-courses-container">
-      <div class="page-header">
+    <div class="my-courses-container animate-fade-in">
+      <div class="page-header animate-fade-in">
         <h1>{{ isTeacher ? '我的教学课程' : '我的学习课程' }}</h1>
         <p>{{ isTeacher ? '管理您创建的课程和学生' : '查看您已选的课程和学习进度' }}</p>
       </div>
@@ -9,7 +9,7 @@
       <!-- 课程列表 -->
       <div class="courses-section">
         <!-- 教师创建课程按钮 -->
-        <div class="action-bar" v-if="isTeacher">
+        <div class="action-bar animate-slide-up" v-if="isTeacher" style="animation-delay: 0.3s;">
           <el-button type="primary" @click="createCourse">
             创建新课程
           </el-button>
@@ -27,7 +27,7 @@
             <el-row v-else :gutter="20">
               <transition-group name="course-card" appear>
                 <el-col v-for="(course, index) in enrolledCourses" :key="course.id" :xs="24" :sm="12" :md="8" :lg="6"
-                  class="course-col" :style="{ animationDelay: index * 0.1 + 's' }">
+                  class="course-col animate-slide-up" :style="{ animationDelay: index * 0.1 + 's' }">
                   <el-card class="course-card" shadow="hover">
                     <div class="course-image" @click="viewCourse(course.id)">
                       <img :src="course.coverUrl || '/default-course.jpg'" :alt="course.title">
@@ -74,7 +74,7 @@
           </el-tab-pane>
 
           <!-- 教师的课程 -->
-          <el-tab-pane v-if="isTeacher" label="我的课程" name="teaching">
+          <el-tab-pane v-if="isTeacher" label="我的课程" name="teaching" class="animate-fade-in" style="animation-delay: 0.4s;">
             <div v-if="teachingCourses.length === 0" class="empty-state">
               <el-empty description="您还没有创建任何课程" />
               <el-button type="primary" @click="createCourse">
@@ -82,7 +82,7 @@
               </el-button>
             </div>
 
-            <el-table v-else :data="teachingCourses" style="width: 100%" :header-cell-style="{ 'text-align': 'center' }">
+            <el-table v-else :data="teachingCourses" style="width: 100%" :header-cell-style="{ 'text-align': 'center', 'background-color': '#4782c7' }">
               <el-table-column prop="title" label="课程名称" min-width="100">
                 <template #default="scope">
                   <div class="course-name-cell" @click="viewCourse(scope.row.id)">
@@ -398,24 +398,11 @@ onMounted(async () => {
 
 <style scoped>
 .my-courses-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.my-courses-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
-  pointer-events: none;
 }
 
 .my-courses-container>* {
@@ -424,32 +411,71 @@ onMounted(async () => {
 }
 
 .page-header {
+  position: relative;
   text-align: center;
   margin-bottom: 40px;
-  padding: 40px 20px 20px;
-  max-width: 1200px;
+  padding: 60px 0;
+  max-width: 1250px;
   margin-left: auto;
   margin-right: auto;
+  overflow: hidden;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 32px;
+  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4),
+    0 10px 30px rgba(118, 75, 162, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: headerFloat 6s ease-in-out infinite;
+}
+
+@keyframes headerFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
 }
 
 .page-header h1 {
+  position: relative;
+  z-index: 2;
   font-size: 42px;
   font-weight: 700;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: white;
   margin: 0 0 16px 0;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  letter-spacing: -0.5px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
 }
 
 .page-header p {
+  position: relative;
+  z-index: 2;
   font-size: 18px;
   color: rgba(255, 255, 255, 0.9);
   margin: 0;
   font-weight: 400;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
 }
 
 .action-bar {
@@ -457,7 +483,73 @@ onMounted(async () => {
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
-  padding: 0 20px;
+  padding: 0 20px 20px;
+}
+
+.action-bar .el-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  padding: 14px 28px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-bar .el-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.action-bar .el-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.action-bar .el-button:hover::before {
+  left: 100%;
+}
+
+.action-bar .el-button:active {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* 不同类型按钮的样式 */
+.action-bar .el-button--success {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+}
+
+.action-bar .el-button--success:hover {
+  box-shadow: 0 8px 25px rgba(72, 187, 120, 0.6);
+}
+
+.action-bar .el-button--warning {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+}
+
+.action-bar .el-button--warning:hover {
+  box-shadow: 0 8px 25px rgba(237, 137, 54, 0.6);
+}
+
+.action-bar .el-button--danger {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+}
+
+.action-bar .el-button--danger:hover {
+  box-shadow: 0 8px 25px rgba(240, 147, 251, 0.6);
 }
 
 .courses-section {
@@ -493,122 +585,152 @@ onMounted(async () => {
 }
 
 .course-card {
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   height: 100%;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow:
-    0 15px 35px rgba(0, 0, 0, 0.1),
-    0 5px 15px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
+  border: none;
+  background: white;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .course-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.15),
-    0 10px 25px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.course-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #f5576c);
+  z-index: 1;
 }
 
 .course-image {
   position: relative;
-  height: 200px;
+  height: 220px;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 16px 16px 0 0;
 }
 
 .course-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  filter: brightness(0.95) saturate(1.1);
+  transition: transform 0.4s ease;
 }
 
-.course-image:hover img {
-  transform: scale(1.08);
-  filter: brightness(1.05) saturate(1.2);
+.course-card:hover .course-image img {
+  transform: scale(1.1);
+}
+
+.course-image::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.course-card:hover .course-image::after {
+  opacity: 1;
 }
 
 .progress-overlay {
-  position: absolute; 
-  top: 5px;
-  right: 5px;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
-  border-radius: 35%;
-  box-shadow:
-    0 8px 25px rgba(0, 0, 0, 0.15),
-    0 3px 10px rgba(0, 0, 0, 0.1);
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 36%;
+  padding: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
 .progress-overlay:hover {
   transform: scale(1.05);
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.2),
-    0 5px 15px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
 }
 
 .course-content {
   padding: 24px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
 }
 
 .course-title {
   margin: 0 0 16px 0;
   font-size: 20px;
   font-weight: 700;
-  color: #2d3748;
+  color: #2c3e50;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s ease;
   line-height: 1.4;
-  letter-spacing: -0.3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .course-title:hover {
   color: #667eea;
-  transform: translateX(2px);
 }
 
 .course-meta {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
-  color: #718096;
-  font-size: 14px;
-  font-weight: 500;
+  gap: 12px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  gap: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
   transition: all 0.3s ease;
+  flex: 1;
 }
 
 .meta-item:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #e8f2ff 0%, #dbeafe 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .course-progress {
   margin-bottom: 20px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  transition: all 0.3s ease;
+}
+
+.course-progress:hover {
+  background: linear-gradient(135deg, #e8f2ff 0%, #dbeafe 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
 }
 
 .progress-text {
@@ -626,35 +748,66 @@ onMounted(async () => {
   gap: 12px;
 }
 
+.course-actions .el-button {
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.course-actions .el-button--primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.course-actions .el-button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.course-actions .el-button--danger {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+}
+
+.course-actions .el-button--danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(240, 147, 251, 0.5);
+}
+
 /* 教师课程表格样式 */
 :deep(.el-table) {
-  background: transparent;
-  border-radius: 16px;
+  background: white;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: none;
 }
 
 :deep(.el-table__header) {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 :deep(.el-table__header th) {
   background: transparent;
   border: none;
-  color: #4a5568;
+  color: white;
   font-weight: 700;
   font-size: 14px;
   padding: 20px 16px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 :deep(.el-table__body tr) {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation: tableRowSlideIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  background: white;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  animation: tableRowSlideIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
   opacity: 0;
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 :deep(.el-table__body tr:nth-child(1)) {
@@ -694,19 +847,15 @@ onMounted(async () => {
 }
 
 :deep(.el-table__body tr:hover) {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
 }
 
 :deep(.el-table__body td) {
   border: none;
   padding: 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-:deep(.el-table__body tr:last-child td) {
-  border-bottom: none;
+  vertical-align: middle;
 }
 
 .course-name-cell {
@@ -716,17 +865,18 @@ onMounted(async () => {
   cursor: pointer;
   padding: 8px;
   border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .course-name-cell:hover {
-  background: rgba(102, 126, 234, 0.1);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
   transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
 }
 
 .course-name-cell span {
   font-weight: 600;
-  color: #2d3748;
+  color: #2c3e50;
   transition: all 0.3s ease;
 }
 
@@ -735,9 +885,55 @@ onMounted(async () => {
 }
 
 :deep(.el-avatar) {
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(102, 126, 234, 0.2);
   transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.course-name-cell:hover :deep(.el-avatar) {
+  border-color: #667eea;
+  transform: scale(1.05);
+}
+
+/* 表格按钮样式 */
+:deep(.el-table .el-button) {
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin: 0 4px;
+}
+
+:deep(.el-table .el-button--primary) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+:deep(.el-table .el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+:deep(.el-table .el-button--success) {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+}
+
+:deep(.el-table .el-button--success:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+}
+
+:deep(.el-table .el-button--warning) {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  border: none;
+  box-shadow: 0 4px 15px rgba(237, 137, 54, 0.3);
+}
+
+:deep(.el-table .el-button--warning:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(237, 137, 54, 0.5);
 }
 
 .course-name-cell:hover :deep(.el-avatar) {
@@ -900,6 +1096,246 @@ onMounted(async () => {
 .page-fade-enter-from {
   opacity: 0;
   transform: translateY(30px);
+}
+
+/* 元素进入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 动画类 */
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* 悬停时的微动画 */
+.animate-hover {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.animate-hover:hover {
+  transform: translateY(-2px);
+}
+
+/* 移动端响应式设计 */
+@media (max-width: 768px) {
+  .my-courses-container {
+    padding: 10px;
+  }
+
+  .page-header {
+    padding: 40px 20px;
+    margin-bottom: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .page-header p {
+    font-size: 0.9rem;
+  }
+
+  .courses-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .course-card {
+    margin-bottom: 16px;
+  }
+
+  .course-image {
+    height: 180px;
+  }
+
+  .course-content {
+    padding: 16px;
+  }
+
+  .course-title {
+    font-size: 1.1rem;
+  }
+
+  .meta-item {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .course-actions {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .course-actions .el-button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .action-bar {
+    padding: 16px 0;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .action-bar .el-button {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  /* 表格在移动端的优化 */
+  .teacher-courses {
+    overflow-x: auto;
+  }
+
+  :deep(.el-table) {
+    font-size: 0.85rem;
+  }
+
+  :deep(.el-table th) {
+    padding: 12px 8px;
+  }
+
+  :deep(.el-table td) {
+    padding: 16px 8px;
+  }
+
+  .course-name-cell {
+    padding: 6px;
+    gap: 8px;
+  }
+
+  :deep(.el-avatar) {
+    width: 32px;
+    height: 32px;
+  }
+
+  :deep(.el-table .el-button) {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    margin: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 30px 15px;
+  }
+
+  .page-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .course-card {
+    border-radius: 12px;
+  }
+
+  .course-image {
+    height: 160px;
+  }
+
+  .course-content {
+    padding: 12px;
+  }
+
+  .course-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .meta-item {
+    align-self: flex-start;
+  }
+
+  .progress-container {
+    margin: 12px 0;
+  }
+
+  .course-actions {
+    padding: 10px 12px;
+  }
+
+  .action-bar .el-button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+
+  /* 极小屏幕下隐藏部分表格列 */
+  :deep(.el-table .hidden-xs-only) {
+    display: none;
+  }
 }
 
 /* 课程卡片交错动画 */

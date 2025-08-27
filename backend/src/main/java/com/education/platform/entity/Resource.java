@@ -1,13 +1,9 @@
 package com.education.platform.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import lombok.Data;
 
@@ -17,7 +13,7 @@ import lombok.Data;
  * </p>
  *
  * @author tan
- * @since 2025-08-03
+ * @since 2025-08-27
  */
 @Data
 public class Resource implements Serializable {
@@ -36,29 +32,32 @@ public class Resource implements Serializable {
     private Long chapterId;
 
     /**
-     * 资源类型 video/pdf/ppt
+     * 资源标题（如：课件1、案例代码等）
+     */
+    private String title;
+
+    /**
+     * 资源类型（video/pdf/ppt/image/other）
      */
     private String type;
 
     /**
-     * OSS文件地址
+     * 文件访问地址（OSS、本地URL）
      */
     private String url;
 
     /**
-     * 视频时长(秒)
+     * 视频时长（秒，仅视频资源有值）
      */
     private Integer duration;
 
     /**
-     * 资源标题（文件名/显示名）
+     * 上传时间
      */
-    @TableField(exist = false)
-    private String title;
+    private LocalDateTime createTime;
 
     /**
-     * 创建时间
+     * 更新时间
      */
-    @TableField(exist = false)
-    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

@@ -21,16 +21,12 @@ export const courseApi = {
     return request.post(`/course/approve/${courseId}`);
   },
 
-  // 管理员驳回课程
+  // 管理员驳回课程（可扩展传rejectReason）
   rejectCourse: (courseId) => {
     return request.post(`/course/reject/${courseId}`);
   },
 
-  // 可以补充信息服务 -- rejectReason驳回原因
-  // 管理员驳回课程
-  // rejectCourse: (courseId, rejectReason) => {
-  //   return request.post(`/course/reject/${courseId}`, { rejectReason });
-  // },
+  // ================== 章节 ==================
 
   // 获取章节树
   getChapterTree: (courseId) => {
@@ -52,18 +48,25 @@ export const courseApi = {
     return request.delete(`/chapter/delete/${id}`);
   },
 
-  // 获取章节资源列表
+  // ================== 资源 ==================
+
+  // 获取章节下的资源列表
   getResourceList: (chapterId) => {
     return request.get(`/resource/list/${chapterId}`);
   },
 
-  // 上传文件并保存资源记录
+  // 上传资源
   uploadResource: (formData) => {
     return request.post('/resource/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
+  },
+  
+  // 更新资源 // ？？？
+  updateResource: (resourceId, data) => {
+    return request.put(`/resource/${resourceId}`, data);
   },
 
   // 删除资源
