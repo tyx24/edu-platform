@@ -24,6 +24,9 @@ public class SecurityConfig {
         http
                 .csrf().disable() // 前后端分离，关闭 CSRF
                 .cors().and() // 启用 CORS
+                .headers()
+                .frameOptions().sameOrigin() // 允许同源 iframe 加载
+                .and()
                 .authorizeRequests()
                 .antMatchers(
                         "/auth/login",
@@ -33,7 +36,8 @@ public class SecurityConfig {
                         "/swagger-resources/**",
                         "/webjars/**",
                         "/swagger-ui.html",
-                        "/doc.html"
+                        "/doc.html",
+                        "/files/**"   // 你要预览的静态资源也放行
                 ).permitAll() // 白名单接口
                 .anyRequest().authenticated() // 其他都需要认证
                 .and()

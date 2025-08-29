@@ -48,6 +48,11 @@ export const courseApi = {
     return request.delete(`/chapter/delete/${id}`);
   },
 
+  // 获取章节详情
+  getChapterDetail: (id) => {
+    return request.get(`/chapter/detail/${id}`);
+  },
+
   // ================== 资源 ==================
 
   // 获取章节下的资源列表

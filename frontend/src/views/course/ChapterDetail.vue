@@ -1,1150 +1,1255 @@
 <template>
-  <div class="chapter-detail-container" v-loading="loading">
-    <!-- 返回按钮 -->
-    <div class="back-section">
-      <el-button @click="goBack" type="text" class="back-btn">
-        <i class="el-icon-arrow-left"></i>
-        返回课程
-      </el-button>
-    </div>
+    <div class="chapter-detail-page">
+        <div class="page-header">
 
-    <!-- 章节信息 -->
-    <div class="chapter-header" v-if="chapter">
-      <div class="chapter-info">
-        <h1 class="chapter-title">{{ chapter.title }}</h1>
-        <div class="chapter-meta">
-          <span class="meta-item">
-            <i class="el-icon-folder"></i>
-            所属课程: {{ course?.title }}
-          </span>
-          <span class="meta-item">
-            <i class="el-icon-sort"></i>
-            排序: {{ chapter.orderNum }}
-          </span>
-          <span class="meta-item" v-if="chapter.parentId !== 0">
-            <i class="el-icon-connection"></i>
-            父章节: {{ parentChapter?.title }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 章节内容 -->
-    <div class="chapter-content" v-if="chapter">
-      <el-card class="content-card">
-        <template #header>
-          <div class="card-header">
-            <span>章节内容</span>
-            <el-button v-if="isTeacher" type="primary" size="small" @click="editChapter">
-              编辑章节
-            </el-button>
-          </div>
-        </template>
-        
-        <div class="chapter-description" v-if="chapter.description">
-          <p>{{ chapter.description }}</p>
-        </div>
-        <div v-else class="no-description">
-          <el-empty description="暂无章节描述" :image-size="100" />
-        </div>
-      </el-card>
-
-      <!-- 子章节列表 -->
-      <el-card class="content-card" v-if="subChapters.length > 0">
-        <template #header>
-          <div class="card-header">
-            <span>子章节</span>
-            <el-button v-if="isTeacher" type="primary" size="small" @click="addSubChapter">
-              添加子章节
-            </el-button>
-          </div>
-        </template>
-        
-        <div class="sub-chapters-list">
-          <div 
-            v-for="subChapter in subChapters" 
-            :key="subChapter.id" 
-            class="sub-chapter-item"
-            @click="viewSubChapter(subChapter)"
-          >
-            <div class="sub-chapter-info">
-              <i class="el-icon-folder"></i>
-              <span class="sub-chapter-title">{{ subChapter.title }}</span>
-              <span class="sub-chapter-order">排序: {{ subChapter.orderNum }}</span>
+            <div class="breadcrumb">
+                <el-breadcrumb separator=">">
+                    <el-breadcrumb-item @click="goBack">课程详情</el-breadcrumb-item>
+                    <el-breadcrumb-item>章节详情</el-breadcrumb-item>
+                </el-breadcrumb>
             </div>
-            <div class="sub-chapter-actions" v-if="isTeacher">
-              <el-button type="text" size="small" @click.stop="editSubChapter(subChapter)">
-                编辑
-              </el-button>
-              <el-button type="text" size="small" @click.stop="deleteSubChapter(subChapter)">
-                删除
-              </el-button>
-            </div>
-          </div>
         </div>
-      </el-card>
 
-      <!-- 章节资源 -->
-      <el-card class="content-card">
-        <template #header>
-          <div class="card-header">
-            <span>章节资源</span>
-            <el-button v-if="isTeacher" type="primary" size="small" @click="addResource">
-              添加资源
-            </el-button>
-          </div>
-        </template>
-        
-        <div v-if="resources.length > 0" class="resources-list">
-          <div 
-            v-for="resource in resources" 
-            :key="resource.id" 
-            class="resource-item"
-          >
-            <div class="resource-content">
-              <div class="resource-header">
-                <div class="resource-info">
-                  <i class="el-icon-document"></i>
-                  <span class="resource-title">{{ resource.title }}</span>
-                  <el-tag size="small" :type="getResourceTypeColor(resource.type)">
-                    {{ getResourceTypeText(resource.type) }}
-                  </el-tag>
+        <el-row :gutter="24" class="main-content">
+
+            <!-- 左侧章节详情 -->
+            <el-col :span="16">
+                <!-- 可滚动内容区域 -->
+                <div class="scrollable-content">
+                    <div class="content-card">
+                        <div class="chapter-header">
+                            <div class="title-section">
+                                <h1 class="chapter-title">{{ chapterDetail.title || '章节标题' }}</h1>
+                                <div class="chapter-meta">
+                                    <el-tag type="info" size="small">章节 ID: {{ chapterDetail.id }}</el-tag>
+                                </div>
+                            </div>
+                            <div class="action-section" v-if="canEdit">
+                                <el-button type="primary" @click="startEditContent" size="large">
+                                    <el-icon>
+                                        <Edit />
+                                    </el-icon>
+                                    编辑章节内容
+                                </el-button>
+                                <el-button type="danger" @click="deleteChapter" :loading="deletingChapter" size="large">
+                                    <el-icon>
+                                        <Delete />
+                                    </el-icon>
+                                    删除章节
+                                </el-button>
+                            </div>
+                        </div>
+
+                        <!-- 章节内容显示 -->
+                        <div class="content-section" v-if="!isEditingContent">
+                            <div class="section-header">
+                                <h3><el-icon>
+                                        <DocumentAdd />
+                                    </el-icon>章节内容</h3>
+                            </div>
+                            <div class="chapter-content" v-html="chapterDetail.content || '暂无内容'">
+                            </div>
+                        </div>
+
+                        <!-- 富文本编辑器 -->
+                        <div class="editor-section" v-if="isEditingContent && canEdit">
+                            <div class="section-header">
+                                <h3><el-icon>
+                                        <Edit />
+                                    </el-icon>章节内容编辑</h3>
+                            </div>
+                            <div class="editor-container">
+                                <QuillEditor ref="contentEditor" v-model:content="editingContent" contentType="html"
+                                    theme="snow" :options="contentEditorOptions" class="custom-editor" />
+                            </div>
+                            <div class="content-edit-actions">
+                                <el-button type="primary" @click="saveContentChanges" :loading="savingContent">
+                                    保存内容
+                                </el-button>
+                                <el-button @click="cancelEditContent">
+                                    取消编辑
+                                </el-button>
+                            </div>
+                        </div>
+
+
+                    </div>
                 </div>
-                <div class="resource-actions">
-                  <el-button type="text" size="small" @click="viewResource(resource)">
-                    查看
-                  </el-button>
-                  <el-button v-if="isTeacher" type="text" size="small" @click="editResource(resource)">
-                    编辑
-                  </el-button>
-                  <el-button v-if="isTeacher" type="text" size="small" @click="deleteResource(resource)">
-                    删除
-                  </el-button>
+            </el-col>
+
+            <!-- 右侧章节目录 -->
+            <el-col :span="8">
+                <div class="sidebar-card">
+                    <div class="sidebar-header">
+                        <h3><el-icon>
+                                <Menu />
+                            </el-icon>课程目录</h3>
+                    </div>
+                    <div class="tree-container">
+                        <el-tree :data="chapterTree" :props="defaultProps" node-key="id"
+                            :default-expanded-keys="[chapterDetail.id]" :highlight-current="true"
+                            :expand-on-click-node="false" @node-click="handleChapterClick" class="custom-tree" />
+                    </div>
                 </div>
-              </div>
-              <div v-if="resource.description" class="resource-description" v-html="resource.description"></div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="no-resources">
-          <el-empty description="暂无章节资源" :image-size="100" />
-        </div>
-      </el-card>
+            </el-col>
+        </el-row>
     </div>
-
-    <!-- 章节编辑对话框 -->
-    <el-dialog v-model="chapterDialogVisible" title="编辑章节" width="50%">
-      <el-form :model="chapterForm" label-width="80px" :rules="chapterRules" ref="chapterFormRef">
-        <el-form-item label="章节名称" prop="title">
-          <el-input v-model="chapterForm.title" placeholder="请输入章节名称" />
-        </el-form-item>
-        <el-form-item label="章节内容" prop="content">
-          <div class="editor-toolbar-custom">
-            <el-button size="small" @click="handleImageUpload" icon="Picture">插入图片</el-button>
-            <el-button size="small" @click="handleVideoUpload" icon="VideoPlay">插入视频</el-button>
-          </div>
-          <QuillEditor 
-            ref="chapterEditor"
-            v-model:content="chapterForm.content"
-            contentType="html"
-            theme="snow"
-            :options="chapterEditorOptions"
-            style="height: 300px;"
-          />
-        </el-form-item>
-        <el-form-item label="排序" prop="orderNum">
-          <el-input-number v-model="chapterForm.orderNum" :min="1" :max="999" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="chapterDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveChapter" :loading="savingChapter">
-            保存
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 资源上传对话框 -->
-    <el-dialog v-model="resourceDialogVisible" :title="resourceForm.id ? '编辑资源' : '添加资源'" width="60%">
-      <el-form :model="resourceForm" label-width="80px" :rules="resourceRules" ref="resourceFormRef">
-        <el-form-item label="资源名称" prop="title">
-          <el-input v-model="resourceForm.title" placeholder="请输入资源名称" />
-        </el-form-item>
-        <el-form-item label="资源类型" prop="type">
-          <el-select v-model="resourceForm.type" placeholder="请选择资源类型">
-            <el-option label="文档" value="document" />
-            <el-option label="视频" value="video" />
-            <el-option label="音频" value="audio" />
-            <el-option label="图片" value="image" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="资源描述" prop="description">
-          <QuillEditor 
-            v-model:content="resourceForm.description"
-            contentType="html"
-            theme="snow"
-            :options="editorOptions"
-            style="height: 200px;"
-          />
-        </el-form-item>
-        <el-form-item label="资源文件" :prop="resourceForm.id ? '' : 'file'">
-          <el-upload 
-            class="resource-uploader" 
-            :auto-upload="false"
-            :on-change="handleFileChange" 
-            :limit="1"
-          >
-            <el-button type="primary">{{ resourceForm.id ? '重新选择文件' : '选择文件' }}</el-button>
-            <template #tip>
-              <div class="el-upload__tip">
-                支持各种类型的文件，大小不超过150MB
-                {{ resourceForm.id ? '（不选择文件则保持原文件不变）' : '' }}
-              </div>
-            </template>
-          </el-upload>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="resourceDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveResource" :loading="savingResource">
-            {{ resourceForm.id ? '更新' : '保存' }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { DocumentAdd, Edit, Delete, Menu } from '@element-plus/icons-vue';
 import { courseApi } from '../../api/course';
 import { useAuthStore } from '../../store/auth';
-import { QuillEditor } from 'vue-quill-editor';
-import 'quill/dist/quill.core.css';
-import 'quill/dist/quill.snow.css';
-import 'quill/dist/quill.bubble.css';
+import { QuillEditor, Quill } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css';
 
+// 注册自定义附件按钮
+const icons = Quill.import('ui/icons');
+icons['attachment'] = '🗃️';
+
+// 路由
 const route = useRoute();
 const router = useRouter();
+const courseId = route.params.courseId;
+const chapterId = route.params.chapterId;
 const authStore = useAuthStore();
-
-// 路由参数
-const courseId = computed(() => route.params.courseId);
-const chapterId = computed(() => route.params.chapterId);
-
-// 页面状态
-const loading = ref(false);
-const course = ref(null);
-const chapter = ref(null);
-const parentChapter = ref(null);
-const subChapters = ref([]);
-const resources = ref([]);
-
-// 用户角色
-const isTeacher = computed(() => authStore.hasPermission('teacher'));
-
-// 章节对话框
-const chapterDialogVisible = ref(false);
-const chapterFormRef = ref(null);
-const savingChapter = ref(false);
-const chapterForm = reactive({
-  id: '',
-  courseId: '',
-  parentId: '',
-  title: '',
-  content: '',
-  orderNum: 1
-});
-
-// 资源对话框
-const resourceDialogVisible = ref(false);
-const resourceFormRef = ref(null);
-const savingResource = ref(false);
-const resourceForm = reactive({
-  chapterId: '',
-  title: '',
-  type: '',
-  description: '',
-  url: '',
-  file: null
-});
-
-// 表单验证规则
-const chapterRules = {
-  title: [
-    { required: true, message: '请输入章节名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  orderNum: [
-    { required: true, message: '请输入排序号', trigger: 'blur' },
-    { type: 'number', min: 1, max: 999, message: '排序号必须在1-999之间', trigger: 'blur' }
-  ]
-};
-
-const resourceRules = {
-  title: [
-    { required: true, message: '请输入资源名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  type: [
-    { required: true, message: '请选择资源类型', trigger: 'change' }
-  ],
-  description: [
-    { required: true, message: '请输入资源描述', trigger: 'blur' }
-  ]
-};
-
-// 上传文件的请求头
-const uploadHeaders = computed(() => {
-  return {
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-  };
-});
-
-// 资源描述富文本编辑器配置
-const editorOptions = {
-  modules: {
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-      ['blockquote', 'code-block'],
-      [{ 'header': 1 }, { 'header': 2 }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'script': 'sub'}, { 'script': 'super' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
-      [{ 'size': ['small', false, 'large', 'huge'] }],
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'font': [] }],
-      [{ 'align': [] }],
-      ['clean'],
-      ['link', 'image']
-    ]
-  },
-  placeholder: '请输入资源描述...',
-  readOnly: false,
-  theme: 'snow'
-};
-
-// 章节内容富文本编辑器配置
-const chapterEditorOptions = {
-  modules: {
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-      ['blockquote', 'code-block'],
-      [{ 'header': 1 }, { 'header': 2 }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'script': 'sub'}, { 'script': 'super' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
-      [{ 'size': ['small', false, 'large', 'huge'] }],
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'font': [] }],
-      [{ 'align': [] }],
-      ['clean'],
-      ['link']
-    ]
-  },
-  placeholder: '请输入章节内容...',
-  readOnly: false,
-  theme: 'snow'
-};
-
-// 编辑器引用
-const chapterEditor = ref(null);
-
-// 处理图片上传
-const handleImageUpload = () => {
-  const input = document.createElement('input');
-  input.setAttribute('type', 'file');
-  input.setAttribute('accept', 'image/*');
-  input.click();
-
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (file) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch('/api/resource/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        });
-        
-        const result = await response.json();
-        if (result.code === 200) {
-          // 获取编辑器实例并插入图片
-          const quill = chapterEditor.value?.getQuill();
-          if (quill) {
-            const range = quill.getSelection(true);
-            quill.insertEmbed(range ? range.index : 0, 'image', result.data.url);
-          }
-          ElMessage.success('图片上传成功');
-        } else {
-          ElMessage.error('图片上传失败');
-        }
-      } catch (error) {
-        console.error('图片上传失败:', error);
-        ElMessage.error('图片上传失败');
-      }
-    }
-  };
-};
-
-// 处理视频上传
-const handleVideoUpload = () => {
-  const input = document.createElement('input');
-  input.setAttribute('type', 'file');
-  input.setAttribute('accept', 'video/*');
-  input.click();
-
-  input.onchange = async () => {
-    const file = input.files[0];
-    if (file) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch('/api/resource/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        });
-        
-        const result = await response.json();
-        if (result.code === 200) {
-          // 获取编辑器实例并插入视频
-          const quill = chapterEditor.value?.getQuill();
-          if (quill) {
-            const range = quill.getSelection(true);
-            const videoHtml = `<video controls style="max-width: 100%; height: auto;"><source src="${result.data.url}" type="video/mp4">您的浏览器不支持视频播放。</video>`;
-            quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, videoHtml);
-          }
-          ElMessage.success('视频上传成功');
-        } else {
-          ElMessage.error('视频上传失败');
-        }
-      } catch (error) {
-        console.error('视频上传失败:', error);
-        ElMessage.error('视频上传失败');
-      }
-    }
-  };
-};
-
-
-
-// 获取章节详情
-const fetchChapterDetail = async () => {
-  try {
-    loading.value = true;
-    
-    // 获取课程信息和章节树
-    const courseRes = await courseApi.getCourseDetail(courseId.value);
-    course.value = courseRes.course;
-    
-    const chapterTreeRes = await courseApi.getChapterTree(courseId.value);
-    const chapterTree = chapterTreeRes.data || [];
-    
-    // 在章节树中查找当前章节
-    const findChapter = (chapters, targetId) => {
-      for (const ch of chapters) {
-        if (ch.id == targetId) {
-          return ch;
-        }
-        if (ch.children && ch.children.length > 0) {
-          const found = findChapter(ch.children, targetId);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    
-    chapter.value = findChapter(chapterTree, chapterId.value);
-    
-    // 如果有父章节，查找父章节信息
-    if (chapter.value && chapter.value.parentId && chapter.value.parentId !== 0) {
-      parentChapter.value = findChapter(chapterTree, chapter.value.parentId);
-    }
-    
-    // 获取子章节（从当前章节的children中获取非资源项）
-    if (chapter.value && chapter.value.children) {
-      subChapters.value = chapter.value.children.filter(child => !child.url);
-    }
-    
-    // 获取章节资源
-    await fetchResources();
-  } catch (error) {
-    console.error('获取章节详情失败:', error);
-    ElMessage.error('获取章节详情失败');
-  } finally {
-    loading.value = false;
-  }
-};
-
-// 获取子章节（已在fetchChapterDetail中处理）
-const fetchSubChapters = async () => {
-  // 子章节已在fetchChapterDetail中从章节树获取
-  // 这里保留函数以保持兼容性
-};
-
-// 获取章节资源
-const fetchResources = async () => {
-  try {
-    const res = await courseApi.getResourceList(chapterId.value);
-    resources.value = res.data || [];
-  } catch (error) {
-    console.error('获取章节资源失败:', error);
-  }
-};
 
 // 返回课程详情页
 const goBack = () => {
-  router.push(`/course/${courseId.value}`);
+    router.push(`/course/${courseId}`);
 };
 
-// 查看子章节
-const viewSubChapter = (subChapter) => {
-  router.push(`/course/${courseId.value}/chapter/${subChapter.id}`);
-};
+// 权限控制
+const canEdit = computed(() => {
+    return authStore.hasPermission('teacher') || authStore.hasPermission('admin');
+});
 
-// 编辑章节
-const editChapter = () => {
-  chapterForm.id = chapter.value.id;
-  chapterForm.courseId = chapter.value.courseId;
-  chapterForm.parentId = chapter.value.parentId;
-  chapterForm.title = chapter.value.title;
-  chapterForm.content = chapter.value.content || '';
-  chapterForm.orderNum = chapter.value.orderNum;
-  chapterDialogVisible.value = true;
-};
+// 章节详情
+const chapterDetail = reactive({
+    id: null,
+    courseId: null,
+    title: '',
+    content: '',
+    parentId: null,
+    orderNum: 0
+});
 
-// 编辑子章节
-const editSubChapter = (subChapter) => {
-  chapterForm.id = subChapter.id;
-  chapterForm.courseId = subChapter.courseId;
-  chapterForm.parentId = subChapter.parentId;
-  chapterForm.title = subChapter.title;
-  chapterForm.content = subChapter.content || '';
-  chapterForm.orderNum = subChapter.orderNum;
-  chapterDialogVisible.value = true;
-};
+// 编辑状态
+const isEditingContent = ref(false);
+const editingContent = ref('');
+const savingContent = ref(false);
+const originalContent = ref(''); // 保存原始内容用于对比
+const currentResources = ref([]); // 当前章节的资源列表
 
-// 添加子章节
-const addSubChapter = () => {
-  chapterForm.id = '';
-  chapterForm.courseId = courseId.value;
-  chapterForm.parentId = chapterId.value;
-  chapterForm.title = '';
-  chapterForm.content = '';
-  chapterForm.orderNum = subChapters.value.length + 1;
-  chapterDialogVisible.value = true;
-};
+// 处理图片上传
+const handleContentImageUpload = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
 
-// 保存章节
-const saveChapter = async () => {
-  if (!chapterFormRef.value) return;
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (file) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('chapterId', chapterDetail.id);
+                formData.append('type', 'image');
 
-  await chapterFormRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        savingChapter.value = true;
-        if (chapterForm.id) {
-          // 更新章节
-          await courseApi.updateChapter(chapterForm.id, chapterForm);
-          ElMessage.success('章节更新成功');
-        } else {
-          // 创建章节
-          await courseApi.createChapter(chapterForm);
-          ElMessage.success('章节创建成功');
+                const res = await courseApi.uploadResource(formData);
+                const imageUrl = res.data.url;
+
+                // 插入图片到编辑器
+                const quill = contentEditor.value.getQuill();
+                const range = quill.getSelection();
+                quill.insertEmbed(range ? range.index : 0, 'image', `/edu${imageUrl}`);
+
+                ElMessage.success('图片上传成功');
+            } catch (error) {
+                console.error('图片上传失败:', error);
+                ElMessage.error('图片上传失败');
+            }
         }
-        chapterDialogVisible.value = false;
-        // 刷新页面数据
-        await fetchChapterDetail();
+    };
+};
+
+// 处理视频上传
+const handleContentVideoUpload = () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'video/*');
+    input.click();
+
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (file) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('chapterId', chapterDetail.id);
+                formData.append('type', 'video');
+
+                const res = await courseApi.uploadResource(formData);
+                const videoUrl = res.data.url;
+
+                // 插入视频到编辑器
+                const quill = contentEditor.value.getQuill();
+                const range = quill.getSelection();
+                quill.insertEmbed(range ? range.index : 0, 'video', `/edu${videoUrl}`);
+
+                ElMessage.success('视频上传成功');
+            } catch (error) {
+                console.error('视频上传失败:', error);
+                ElMessage.error('视频上传失败');
+            }
+        }
+    };
+};
+
+// 处理附件上传（PPT、Word、Excel等）
+const handleContentAttachmentUpload = () => {
+  const input = document.createElement('input');
+  input.setAttribute('type', 'file');
+  input.setAttribute('accept', '.ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf,.txt,.zip,.rar');
+  input.click();
+
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (file) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('chapterId', chapterDetail.id);
+        formData.append('type', 'attachment');
+
+        const res = await courseApi.uploadResource(formData);
+
+        // 后端需要返回转换后的预览URL
+        const previewUrl = res.data.url;
+        const fileName = file.name;
+
+        const quill = contentEditor.value.getQuill();
+        const range = quill.getSelection();
+
+        // 插入iframe，而不是超链接
+        const iframeHtml = `
+          <iframe src="${previewUrl}"
+                  class="ans-attach-online insertdoc-online-pdf"
+                  frameborder="0"
+                  scrolling="no"
+                  allowfullscreen="true"
+                  style="height: 600px; width: 100%;"></iframe>
+        `;
+        quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, iframeHtml);
+
+        ElMessage.success('附件上传成功并可预览');
       } catch (error) {
-        console.error('保存章节失败:', error);
-        ElMessage.error('保存章节失败');
-      } finally {
-        savingChapter.value = false;
+        console.error('附件上传失败:', error);
+        ElMessage.error('附件上传失败');
       }
     }
-  });
+  };
 };
 
-// 删除子章节
-const deleteSubChapter = async (subChapter) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除该子章节吗？删除后将无法恢复。',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
 
-    await courseApi.deleteChapter(subChapter.id);
-    ElMessage.success('子章节删除成功');
-    // 刷新子章节列表
-    await fetchSubChapters();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除子章节失败:', error);
-      ElMessage.error('删除子章节失败');
-    }
-  }
+// 富文本编辑器配置
+const contentEditor = ref(null);
+const contentEditorOptions = {
+    modules: {
+        toolbar: {
+            container: [
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['blockquote', 'code-block'],
+                [{ 'font': [] }, { 'size': [] }],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                ['link', 'image', 'video', 'attachment'],
+                ['clean']
+            ],
+            handlers: {
+                'image': handleContentImageUpload,
+                'video': handleContentVideoUpload,
+                'attachment': handleContentAttachmentUpload
+            }
+        },
+        syntax: {
+            highlight: (text, language) => {
+                if (language && hljs.getLanguage(language)) {
+                    return hljs.highlight(text, { language }).value;
+                }
+                return hljs.highlightAuto(text).value;
+            }
+        }
+    },
+    placeholder: '请输入章节内容...',
+    readOnly: false,
+    theme: 'snow'
 };
 
-// 添加资源
-const addResource = () => {
-  resourceForm.chapterId = chapterId.value;
-  resourceForm.title = '';
-  resourceForm.type = '';
-  resourceForm.description = '';
-  resourceForm.url = '';
-  resourceForm.file = null;
-  resourceDialogVisible.value = true;
-};
-
-// 编辑资源
-const editResource = (resource) => {
-  resourceForm.id = resource.id;
-  resourceForm.chapterId = resource.chapterId;
-  resourceForm.title = resource.title;
-  resourceForm.type = resource.type;
-  resourceForm.description = resource.description || '';
-  resourceForm.url = resource.url;
-  resourceForm.file = null;
-  resourceDialogVisible.value = true;
-};
-
-// 上传资源前的验证
-const beforeResourceUpload = (file) => {
-  const isLt150M = file.size / 1024 / 1024 < 150;
-  if (!isLt150M) {
-    ElMessage.error('上传文件大小不能超过 150MB!');
-  }
-  return isLt150M;
-};
-
-// 文件选择回调
-const handleFileChange = (file) => {
-  const isLt150M = file.size / 1024 / 1024 < 150;
-  if (!isLt150M) {
-    ElMessage.error('上传文件大小不能超过 150MB!');
-    return false;
-  }
-  resourceForm.file = file.raw;
-  ElMessage.success('文件选择成功');
-};
-
-// 保存资源
-const saveResource = async () => {
-  if (!resourceFormRef.value) return;
-
-  await resourceFormRef.value.validate(async (valid) => {
-    if (valid) {
-      if (!resourceForm.file) {
-        ElMessage.warning('请先选择资源文件');
+// 内容编辑方法
+const startEditContent = async () => {
+    if (!canEdit.value) {
+        ElMessage.warning('您没有编辑权限');
         return;
-      }
+    }
+    isEditingContent.value = true;
+    editingContent.value = chapterDetail.content || '';
+    originalContent.value = chapterDetail.content || '';
 
-      try {
-        savingResource.value = true;
-        if (resourceForm.id) {
-          // 更新资源
-          const updateData = {
-            title: resourceForm.title,
-            type: resourceForm.type,
-            description: resourceForm.description
-          };
-          
-          if (resourceForm.file) {
-            // 如果有新文件，需要重新上传
-            const formData = new FormData();
-            formData.append('file', resourceForm.file);
-            formData.append('chapterId', resourceForm.chapterId);
-            formData.append('title', resourceForm.title);
-            formData.append('description', resourceForm.description);
-            await courseApi.uploadResource(formData);
-          } else {
-            // 只更新资源信息
-            await courseApi.updateResource(resourceForm.id, updateData);
-          }
-        } else {
-          // 创建FormData对象
-          const formData = new FormData();
-          formData.append('file', resourceForm.file);
-          formData.append('chapterId', resourceForm.chapterId);
-          formData.append('title', resourceForm.title);
-          formData.append('description', resourceForm.description);
-          
-          // 上传资源文件并保存记录
-          await courseApi.uploadResource(formData);
+    // 加载当前章节的资源列表
+    try {
+        const res = await courseApi.getResourceList(chapterDetail.id);
+        currentResources.value = res.data || [];
+    } catch (error) {
+        console.error('加载资源列表失败:', error);
+        currentResources.value = [];
+    }
+};
+
+const cancelEditContent = () => {
+    isEditingContent.value = false;
+    editingContent.value = '';
+};
+
+const saveContentChanges = async () => {
+    try {
+        savingContent.value = true;
+
+        // 同步资源变化
+        await syncResourceChanges();
+
+        const updateData = {
+            ...chapterDetail,
+            content: editingContent.value
+        };
+        await courseApi.updateChapter(chapterDetail.id, updateData);
+        chapterDetail.content = editingContent.value;
+        isEditingContent.value = false;
+        ElMessage.success('章节内容保存成功');
+    } catch (error) {
+        console.error('保存内容失败:', error);
+        ElMessage.error('保存内容失败');
+    } finally {
+        savingContent.value = false;
+    }
+};
+
+// 同步资源变化
+const syncResourceChanges = async () => {
+    try {
+        // 提取原始内容中的媒体URL
+        const originalUrls = extractMediaUrls(originalContent.value);
+        // 提取当前编辑内容中的媒体URL
+        const currentUrls = extractMediaUrls(editingContent.value);
+
+        // 找出新增的URL
+        const addedUrls = currentUrls.filter(url => !originalUrls.includes(url));
+        // 找出删除的URL
+        const removedUrls = originalUrls.filter(url => !currentUrls.includes(url));
+
+        // 处理删除的资源
+        for (const url of removedUrls) {
+            const resources = currentResources.value.filter(r => r.url === url);
+            for (const resource of resources) {
+                try {
+                    await courseApi.deleteResource(resource.id);
+                    console.log('已删除资源:', url);
+                } catch (error) {
+                    console.error('删除资源失败:', url, error);
+                }
+            }
         }
-        ElMessage.success(resourceForm.id ? '资源更新成功' : '资源添加成功');
-        resourceDialogVisible.value = false;
-        // 刷新资源列表
-        await fetchResources();
-      } catch (error) {
-        console.error('保存资源失败:', error);
-        ElMessage.error('保存资源失败');
-      } finally {
-        savingResource.value = false;
-      }
+
+        // 新增的资源已经在上传时自动保存到资源表，无需额外处理
+        if (addedUrls.length > 0) {
+            console.log('新增资源:', addedUrls);
+        }
+
+    } catch (error) {
+        console.error('同步资源变化失败:', error);
     }
-  });
 };
 
-// 查看资源
-const viewResource = (resource) => {
-  window.open(resource.url, '_blank');
-};
+// 提取内容中的媒体URL
+const extractMediaUrls = (content) => {
+    const urls = [];
+    if (!content) return urls;
 
-// 删除资源
-const deleteResource = async (resource) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除该资源吗？删除后将无法恢复。',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-
-    await courseApi.deleteResource(resource.id);
-    ElMessage.success('资源删除成功');
-    // 刷新资源列表
-    await fetchResources();
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除资源失败:', error);
-      ElMessage.error('删除资源失败');
+    // 提取图片URL
+    const imgRegex = /<img[^>]+src="([^"]+)"/g;
+    let match;
+    while ((match = imgRegex.exec(content)) !== null) {
+        // 去掉/edu前缀，保持与资源表中的URL一致
+        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        urls.push(url);
     }
-  }
+
+    // 提取视频URL
+    const videoRegex = /<video[^>]+src="([^"]+)"/g;
+    while ((match = videoRegex.exec(content)) !== null) {
+        // 去掉/edu前缀，保持与资源表中的URL一致
+        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        urls.push(url);
+    }
+
+    // 提取iframe中的视频URL
+    const iframeRegex = /<iframe[^>]+src="([^"]+)"/g;
+    while ((match = iframeRegex.exec(content)) !== null) {
+        // 去掉/edu前缀，保持与资源表中的URL一致
+        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        urls.push(url);
+    }
+
+    // 提取附件链接URL
+    const attachmentRegex = /<iframe[^>]+src="([^"]+)"[^>]*class="ans-attach-online[^"]*"[^>]*><\/iframe>/g;
+    while ((match = attachmentRegex.exec(content)) !== null) {
+        // 去掉/edu前缀，保持与资源表中的URL一致
+        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        urls.push(url);
+    }
+
+    return urls;
 };
 
-// 获取资源类型颜色
-const getResourceTypeColor = (type) => {
-  const colorMap = {
-    'document': 'primary',
-    'video': 'success',
-    'audio': 'warning',
-    'image': 'info',
-    'other': 'default'
-  };
-  return colorMap[type] || 'default';
+// 删除章节
+const deletingChapter = ref(false);
+const deleteChapter = async () => {
+    if (!canEdit.value) {
+        ElMessage.warning('您没有删除权限');
+        return;
+    }
+
+    try {
+        await ElMessageBox.confirm('确定要删除这个章节吗？', '确认删除', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+        });
+
+        deletingChapter.value = true;
+        await courseApi.deleteChapter(chapterDetail.id);
+        ElMessage.success('章节删除成功');
+        // 返回课程详情页
+        goBack();
+    } catch (error) {
+        if (error !== 'cancel') {
+            console.error('删除章节失败:', error);
+            ElMessage.error('删除章节失败');
+        }
+    } finally {
+        deletingChapter.value = false;
+    }
 };
 
-// 获取资源类型文本
-const getResourceTypeText = (type) => {
-  const textMap = {
-    'document': '文档',
-    'video': '视频',
-    'audio': '音频',
-    'image': '图片',
-    'other': '其他'
-  };
-  return textMap[type] || '未知';
+// 章节树
+const chapterTree = ref([]);
+const defaultProps = {
+    children: 'children',
+    label: 'title'
 };
 
-// 页面初始化
-onMounted(() => {
-  fetchChapterDetail();
+const loadChapterTree = async () => {
+    const res = await courseApi.getChapterTree(courseId);
+    chapterTree.value = res.data || [];
+};
+
+const handleChapterClick = (node) => {
+    if (node.id === chapterDetail.id) return;
+    loadChapterDetail(node.id);
+};
+
+// 加载章节详情
+const loadChapterDetail = async (id) => {
+    const res = await courseApi.getChapterDetail(id);
+    Object.assign(chapterDetail, res.data);
+};
+
+// 初始化
+onMounted(async () => {
+    await loadChapterTree();
+    await loadChapterDetail(Number(chapterId));
 });
 </script>
 
 <style scoped>
-.chapter-detail-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
-  min-height: 100vh;
+.chapter-detail-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    padding: 0;
+    position: relative;
 }
 
-.back-section {
-  margin-bottom: 20px;
+.chapter-detail-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.5" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>') repeat;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.back-btn {
-  font-size: 16px;
-  color: #409eff;
-  padding: 8px 0;
+.page-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    padding: 20px 32px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 10;
+    transition: all 0.3s ease;
 }
 
-.back-btn:hover {
-  color: #66b1ff;
+.page-header:hover {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
 }
 
-.chapter-header {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+.breadcrumb {
+    font-size: 14px;
 }
 
-.chapter-title {
-  font-size: 28px;
-  color: #333;
-  margin: 0 0 16px 0;
-  font-weight: 600;
-}
-
-.chapter-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
-  color: #666;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.meta-item i {
-  color: #409eff;
-}
-
-.chapter-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.main-content {
+    padding: 32px 24px;
+    position: relative;
+    z-index: 1;
 }
 
 .content-card {
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  font-size: 16px;
+.content-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #667eea 100%);
+    z-index: 1;
 }
 
-.chapter-description {
-  padding: 20px 0;
-  line-height: 1.8;
-  color: #555;
-  font-size: 15px;
+.content-card:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px) scale(1.01);
 }
 
-.no-description {
-  padding: 40px 0;
-  text-align: center;
+.chapter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 40px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #667eea 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
 }
 
-.sub-chapters-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.chapter-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+    opacity: 0.3;
 }
 
-.sub-chapter-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
+.title-section {
+    position: relative;
+    z-index: 1;
 }
 
-.sub-chapter-item:hover {
-  background: #e3f2fd;
-  border-color: #409eff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+.chapter-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 16px 0;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    background: linear-gradient(45deg, #ffffff 0%, #f0f9ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.sub-chapter-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
+.chapter-meta {
+    margin-top: 8px;
 }
 
-.sub-chapter-info i {
-  color: #409eff;
-  font-size: 16px;
+.action-section {
+    position: relative;
+    z-index: 1;
 }
 
-.sub-chapter-title {
-  font-weight: 500;
-  color: #333;
-  font-size: 15px;
+.editor-section {
+    padding: 32px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.sub-chapter-order {
-  color: #999;
-  font-size: 13px;
-  margin-left: auto;
-  margin-right: 20px;
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
 }
 
-.sub-chapter-actions {
-  display: flex;
-  gap: 8px;
+.section-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    padding-left: 16px;
 }
 
-.resources-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.section-header h3::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 2px;
 }
 
-.resource-item {
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
+.editor-container {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
 }
 
-.resource-item:hover {
-  background: #fff3e0;
-  border-color: #ff9800;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.15);
+.editor-container:hover {
+    border-color: #4facfe;
+    box-shadow: 0 12px 32px rgba(79, 172, 254, 0.15);
 }
 
-.resource-content {
-  width: 100%;
-}
-
-.resource-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.resource-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.resource-info i {
-  color: #ff9800;
-  font-size: 16px;
-}
-
-.resource-title {
-  font-weight: 500;
-  color: #333;
-  font-size: 15px;
-}
-
-.resource-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.resource-description {
-  margin-top: 12px;
-  padding: 12px;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #e1e8ed;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #555;
-}
-
-.resource-description :deep(p) {
-  margin: 0 0 8px 0;
-}
-
-.resource-description :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.resource-description :deep(h1),
-.resource-description :deep(h2),
-.resource-description :deep(h3),
-.resource-description :deep(h4),
-.resource-description :deep(h5),
-.resource-description :deep(h6) {
-  margin: 12px 0 8px 0;
-  color: #333;
-}
-
-.resource-description :deep(ul),
-.resource-description :deep(ol) {
-  margin: 8px 0;
-  padding-left: 20px;
-}
-
-.resource-description :deep(blockquote) {
-  margin: 8px 0;
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border-left: 4px solid #409eff;
-  color: #666;
-}
-
-.resource-description :deep(code) {
-  background: #f1f2f3;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-}
-
-.resource-description :deep(pre) {
-  background: #f8f8f8;
-  padding: 12px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 8px 0;
-}
-
-/* 自定义编辑器工具栏样式 */
-.editor-toolbar-custom {
-  margin-bottom: 10px;
-  padding: 8px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  border: 1px solid #dcdfe6;
-}
-
-.editor-toolbar-custom .el-button {
-  margin-right: 8px;
-}
-
-/* 富文本编辑器样式优化 */
-:deep(.ql-editor) {
-  min-height: 150px;
-  font-size: 14px;
-  line-height: 1.6;
+.custom-editor {
+    height: 500px;
+    border: none;
+    font-size: 16px;
+    line-height: 1.6;
 }
 
 :deep(.ql-toolbar) {
-  border-top: 1px solid #ccc;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  border-bottom: none;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+    padding: 12px 16px;
 }
 
 :deep(.ql-container) {
-  border-bottom: 1px solid #ccc;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
-  border-top: none;
+    background: #ffffff;
+    font-size: 16px;
+    line-height: 1.8;
 }
 
-.no-resources {
-  padding: 40px 0;
-  text-align: center;
+:deep(.ql-editor) {
+    padding: 24px;
+    min-height: 400px;
 }
 
-.dialog-footer {
-  margin-top: 20px;
-  text-align: right;
+/* 代码块样式优化 */
+:deep(.ql-syntax) {
+    background: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
+    position: relative;
 }
 
-.resource-uploader {
-  width: 100%;
+:deep(.ql-syntax::before) {
+    content: 'Code';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: #667eea;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+:deep(.ql-code-block-container) {
+    position: relative;
+}
+
+/* 语法高亮样式 */
+:deep(.hljs) {
+    background: #f6f8fa !important;
+    color: #24292e;
+}
+
+:deep(.hljs-keyword) {
+    color: #d73a49;
+    font-weight: 600;
+}
+
+:deep(.hljs-string) {
+    color: #032f62;
+}
+
+:deep(.hljs-comment) {
+    color: #6a737d;
+    font-style: italic;
+}
+
+:deep(.hljs-number) {
+    color: #005cc5;
+}
+
+:deep(.hljs-function) {
+    color: #6f42c1;
+}
+
+:deep(.hljs-variable) {
+    color: #e36209;
+}
+
+/* 编辑器中的图片样式 */
+:deep(.ql-editor img) {
+    max-width: 800px;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+:deep(.ql-editor img:hover) {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+
+
+/* 响应式编辑器图片 */
+@media (max-width: 768px) {
+    :deep(.ql-editor img) {
+        max-width: 100%;
+    }
+}
+
+.resources-section {
+    padding: 32px;
+}
+
+.upload-box {
+    margin-left: auto;
+}
+
+.resources-table {
+    margin-top: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.custom-table {
+    border-radius: 12px;
+}
+
+.resource-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    height: fit-content;
+    position: sticky;
+    top: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.sidebar-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    z-index: 1;
+}
+
+.sidebar-card:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px) scale(1.02);
+}
+
+.sidebar-header {
+    padding: 32px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.sidebar-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="%23ffffff" opacity="0.2"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>') repeat;
+}
+
+.sidebar-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tree-container {
+    padding: 24px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.custom-tree {
+    background: transparent;
+}
+
+/* 自定义滚动条 */
+.tree-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tree-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+}
+
+.tree-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+/* Element Plus 组件样式覆盖 */
+:deep(.el-button) {
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 12px 24px;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+:deep(.el-button::before) {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+:deep(.el-button:hover::before) {
+    left: 100%;
+}
+
+:deep(.el-button:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.el-button--primary) {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    border: none;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+:deep(.el-button--primary:hover) {
+    background: linear-gradient(135deg, #3b9cfd 0%, #00e5fd 100%);
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}
+
+:deep(.el-button--danger) {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    border: none;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+:deep(.el-button--danger:hover) {
+    background: linear-gradient(135deg, #ff5252 0%, #e53e3e 100%);
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+}
+
+:deep(.el-table) {
+    border-radius: 12px;
+}
+
+:deep(.el-table th) {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    border: none;
+}
+
+:deep(.el-table td) {
+    border: none;
+    padding: 16px 12px;
+}
+
+:deep(.el-table tr:hover > td) {
+    background: #f1f5f9;
+}
+
+:deep(.el-tree-node__content) {
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 4px 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+:deep(.el-tree-node__content::before) {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+:deep(.el-tree-node__content:hover) {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.1);
+}
+
+:deep(.el-tree-node__content:hover::before) {
+    transform: scaleY(1);
+}
+
+:deep(.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    transform: translateX(8px);
+}
+
+:deep(.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content::before) {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scaleY(1);
+}
+
+:deep(.el-tag) {
+    border-radius: 20px;
+    font-weight: 600;
+    padding: 6px 16px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    box-shadow: 0 2px 4px rgba(3, 105, 161, 0.1);
+}
+
+:deep(.el-breadcrumb__inner) {
+    color: #64748b;
+    font-weight: 500;
+}
+
+:deep(.el-breadcrumb__inner:hover) {
+    color: #3b82f6;
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.content-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.sidebar-card {
+    animation: slideInRight 0.6s ease-out 0.2s both;
+}
+
+.chapter-header {
+    animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .chapter-detail-container {
-    padding: 10px;
-  }
-  
-  .chapter-header {
+    .main-content {
+        padding: 16px;
+    }
+
+    .chapter-header {
+        flex-direction: column;
+        gap: 20px;
+        align-items: stretch;
+        padding: 32px 24px;
+    }
+
+    .chapter-title {
+        font-size: 28px;
+    }
+
+    .editor-section,
+    .content-section {
+        padding: 24px 20px;
+    }
+
+    .sidebar-card {
+        position: relative;
+        top: auto;
+        margin-top: 24px;
+    }
+
+    .content-edit-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .content-edit-actions .el-button {
+        width: 100%;
+    }
+}
+
+/* 内容显示区域 */
+.content-section {
+    margin-bottom: 24px;
+}
+
+.chapter-content {
+    min-height: 200px;
+    padding: 32px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    line-height: 1.8;
+    font-size: 16px;
+    color: #334155;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.chapter-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+.chapter-content:hover {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.chapter-content img {
+    max-width: 800px;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.chapter-content img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 小图片保持原始尺寸 */
+.chapter-content img[width] {
+    max-width: none;
+}
+
+/* 响应式图片 */
+@media (max-width: 768px) {
+    .chapter-content img {
+        max-width: 100%;
+    }
+}
+
+.chapter-content video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* 章节内容中的代码块样式 */
+.chapter-content pre {
+    background: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
+    position: relative;
+}
+
+.chapter-content pre::before {
+    content: 'Code';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: #667eea;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chapter-content code {
+    background: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: #d73a49;
+}
+
+
+
+/* 编辑器样式 */
+.content-edit-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
     padding: 20px;
-  }
-  
-  .chapter-title {
-    font-size: 24px;
-  }
-  
-  .chapter-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .sub-chapter-item,
-  .resource-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .sub-chapter-actions,
-  .resource-actions {
-    align-self: flex-end;
-  }
-  
-  .dialog-footer {
-    text-align: center;
-  }
-  
-  .dialog-footer :deep(.el-button) {
-    width: 100%;
-    margin-bottom: 8px;
-  }
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
 }
 
-/* 动画效果 */
-.content-card {
-  animation: fadeInUp 0.6s ease-out;
+.custom-editor {
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.custom-editor .ql-toolbar {
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    background: #f8f9fa;
 }
 
-.sub-chapter-item,
-.resource-item {
-  animation: slideInLeft 0.4s ease-out;
+.custom-editor .ql-container {
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    min-height: 300px;
 }
 
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.custom-editor .ql-editor {
+    min-height: 300px;
+    font-size: 14px;
+    line-height: 1.6;
 }
 </style>

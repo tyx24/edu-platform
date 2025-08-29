@@ -84,5 +84,18 @@ public class ChapterController {
         List<Chapter> chapters = chapterService.getChapterTree(courseId);
         return R.ok(chapters);
     }
+
+    /**
+     * 获取章节详情
+     */
+    @GetMapping("/detail/{id}")
+    public R<Chapter> getDetail(@PathVariable Long id) {
+        Chapter chapter = chapterService.getById(id);
+        if (chapter == null) {
+            return R.fail("未找到该章节");
+        }
+        return R.ok(chapter);
+    }
 }
+
 
