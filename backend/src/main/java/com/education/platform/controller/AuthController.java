@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -84,6 +86,35 @@ public class AuthController {
         String token = userService.login(request.getUsername(), request.getPassword());
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
+        return response;
+    }
+
+    /**
+     * 用户退出登录接口
+     * <p>
+     * - 清除 Redis 中的 Token 和用户信息缓存
+     */
+    @Operation(
+            summary = "用户退出登录",
+            description = "退出登录，清除服务器端缓存。",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "退出成功")
+            }
+    )
+    @PostMapping("/logout")
+    public Map<String, String> logout() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            try {
+                Long userId = Long.parseLong(auth.getName());
+                userService.logout(userId);
+            } catch (NumberFormatException e) {
+                // 忽略错误，可能是匿名用户
+            }
+        }
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "退出成功");
         return response;
     }
 }

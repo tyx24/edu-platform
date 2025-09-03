@@ -19,6 +19,8 @@ public interface IUserService extends IService<User> {
     User register(String username, String password, String email, String role);
 
     String login(String username, String password);
+    
+    void logout(Long userId);
 
     PageResult<User> getUserList(PageRequest request, String role);
 

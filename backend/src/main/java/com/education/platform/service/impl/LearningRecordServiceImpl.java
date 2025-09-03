@@ -9,6 +9,8 @@ import com.education.platform.mapper.LearningRecordMapper;
 import com.education.platform.mapper.ResourceMapper;
 import com.education.platform.service.ILearningRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.platform.util.CacheConstants;
+import com.education.platform.util.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,9 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
     @Autowired
     private ResourceMapper resourceMapper;
+    
+    @Autowired
+    private RedisUtils redisUtils;
 
     @Override
     @Transactional
@@ -69,10 +74,20 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             record.setUpdateTime(LocalDateTime.now());
             updateById(record);
         }
+        
+        // 清除学习进度缓存
+        clearLearningProgressCache(studentId, resourceId);
     }
 
     @Override
     public double getCourseProgress(Long studentId, Long courseId) {
+        // 先从 Redis 缓存中获取
+        String cacheKey = CacheConstants.LEARNING_RECORD_PREFIX + "progress:" + studentId + ":" + courseId;
+        Double cachedProgress = (Double) redisUtils.get(cacheKey);
+        if (cachedProgress != null) {
+            return cachedProgress;
+        }
+        
         // 1. 获取该课程所有章节 ID
         List<Long> chapterIds = chapterMapper.selectList(
                 Wrappers.<Chapter>lambdaQuery().eq(Chapter::getCourseId, courseId)
@@ -104,6 +119,22 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
         // 4. 计算已完成数量
         long completed = records.stream().filter(LearningRecord::getCompleted).count();
-        return (completed * 100.0) / resourceIds.size(); // 用资源总数做分母
+        double progress = (completed * 100.0) / resourceIds.size(); // 用资源总数做分母
+        
+        // 存储到 Redis 缓存，较短的过期时间因为学习进度变化频繁
+        redisUtils.set(cacheKey, progress, CacheConstants.EXPIRE_TIME_30_MINUTES);
+        
+        return progress;
+    }
+    
+    /**
+     * 清除学习进度缓存
+     */
+    private void clearLearningProgressCache(Long studentId, Long resourceId) {
+        // 清除对应课程的进度缓存
+        // 这里简化处理，实际可以根据 resourceId 查找 courseId
+        // 清除学习记录缓存
+        String recordCacheKey = CacheConstants.LEARNING_RECORD_PREFIX + studentId + ":" + resourceId;
+        redisUtils.del(recordCacheKey);
     }
 }

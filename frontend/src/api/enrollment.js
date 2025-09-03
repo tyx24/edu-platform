@@ -36,5 +36,10 @@ export const enrollmentApi = {
     return request.get('/enrollment/export-enrollments', {
       responseType: 'blob'
     });
+  },
+
+  // 获取选课记录
+  getEnrollmentRecord: (enrollmentId) => {
+    return request.get(`/enrollment/record/${enrollmentId}`);
   }
 };

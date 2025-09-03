@@ -1,12 +1,10 @@
 package com.education.platform.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.education.platform.dto.PageRequest;
 import com.education.platform.dto.PageResult;
 import com.education.platform.entity.Course;
 import com.baomidou.mybatisplus.extension.service.IService;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +28,6 @@ public interface ICourseService extends IService<Course> {
      */
     Map<String, Object> getCourseDetail(Long courseId); // 获取课程详情
 
-    PageResult<Course> getCourseList(PageRequest request); // 分页查询课程
+    PageResult<Course> getCourseList(PageRequest request, String difficulty); // 分页查询课程
 
 }

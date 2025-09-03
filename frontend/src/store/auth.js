@@ -54,11 +54,20 @@ export const useAuthStore = defineStore('auth', {
     },
 
     // 退出登录
-    logout() {
-      this.token = '';
-      this.user = null;
-      localStorage.removeItem('token');
-      console.log('用户已退出登录')
+    async logout() {
+      try {
+        // 调用后端退出登录接口
+        await authApi.logout();
+      } catch (error) {
+        console.error('退出登录接口调用失败:', error);
+        // 即使接口调用失败，也要清除本地数据
+      } finally {
+        // 清除本地存储的用户信息
+        this.token = '';
+        this.user = null;
+        localStorage.removeItem('token');
+        console.log('用户已退出登录');
+      }
     },
 
 

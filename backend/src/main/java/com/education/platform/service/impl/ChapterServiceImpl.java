@@ -5,6 +5,8 @@ import com.education.platform.entity.Chapter;
 import com.education.platform.mapper.ChapterMapper;
 import com.education.platform.service.IChapterService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.platform.util.CacheConstants;
+import com.education.platform.util.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,11 +29,21 @@ public class ChapterServiceImpl extends ServiceImpl<ChapterMapper, Chapter> impl
 
     @Autowired
     private ChapterMapper chapterMapper;
+    
+    @Autowired
+    private RedisUtils redisUtils;
 
     /**
      * 获取课程章节树
      */
     public List<Chapter> getChapterTree(Long courseId) {
+        // 先从 Redis 缓存中获取
+        String cacheKey = CacheConstants.COURSE_CHAPTERS_PREFIX + courseId;
+        List<Chapter> cachedChapters = (List<Chapter>) redisUtils.get(cacheKey);
+        if (cachedChapters != null) {
+            return cachedChapters;
+        }
+        
         // 一次性查出所有章节
         List<Chapter> allChapters = chapterMapper.selectList(
                 Wrappers.<Chapter>lambdaQuery()
@@ -44,7 +56,12 @@ public class ChapterServiceImpl extends ServiceImpl<ChapterMapper, Chapter> impl
                 .collect(Collectors.groupingBy(c -> Optional.ofNullable(c.getParentId()).orElse(0L)));
 
         // 递归构建
-        return buildTree(childrenMap, 0L);
+        List<Chapter> chapterTree = buildTree(childrenMap, 0L);
+        
+        // 存储到 Redis 缓存
+        redisUtils.set(cacheKey, chapterTree, CacheConstants.CHAPTER_INFO_EXPIRE_TIME);
+        
+        return chapterTree;
     }
 
     private List<Chapter> buildTree(Map<Long, List<Chapter>> childrenMap, Long parentId) {
@@ -52,5 +69,74 @@ public class ChapterServiceImpl extends ServiceImpl<ChapterMapper, Chapter> impl
                 .stream()
                 .peek(ch -> ch.setChildren(buildTree(childrenMap, ch.getId())))
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public boolean save(Chapter entity) {
+        boolean result = super.save(entity);
+        if (result && entity.getCourseId() != null) {
+            // 清除课程章节缓存
+            clearChapterCache(entity.getCourseId());
+        }
+        return result;
+    }
+    
+    @Override
+    public boolean updateById(Chapter entity) {
+        boolean result = super.updateById(entity);
+        if (result && entity.getCourseId() != null) {
+            // 清除课程章节缓存
+            clearChapterCache(entity.getCourseId());
+            // 清除单个章节缓存
+            clearSingleChapterCache(entity.getId());
+        }
+        return result;
+    }
+    
+    @Override
+    public boolean removeById(Long id) {
+        Chapter chapter = getById(id);
+        boolean result = super.removeById(id);
+        if (result && chapter != null && chapter.getCourseId() != null) {
+            // 清除课程章节缓存
+            clearChapterCache(chapter.getCourseId());
+            // 清除单个章节缓存
+            clearSingleChapterCache(id);
+        }
+        return result;
+    }
+    
+    /**
+     * 获取单个章节信息（带缓存）
+     */
+    public Chapter getChapterWithCache(Long chapterId) {
+        String cacheKey = CacheConstants.CHAPTER_INFO_PREFIX + chapterId;
+        Chapter cachedChapter = (Chapter) redisUtils.get(cacheKey);
+        if (cachedChapter != null) {
+            return cachedChapter;
+        }
+        
+        Chapter chapter = getById(chapterId);
+        if (chapter != null) {
+            redisUtils.set(cacheKey, chapter, CacheConstants.CHAPTER_INFO_EXPIRE_TIME);
+        }
+        
+        return chapter;
+    }
+    
+    /**
+     * 清除课程章节缓存
+     */
+    private void clearChapterCache(Long courseId) {
+        String cacheKey = CacheConstants.COURSE_CHAPTERS_PREFIX + courseId;
+        redisUtils.del(cacheKey);
+    }
+    
+    /**
+     * 清除单个章节缓存
+     */
+    private void clearSingleChapterCache(Long chapterId) {
+        String cacheKey = CacheConstants.CHAPTER_INFO_PREFIX + chapterId;
+        redisUtils.del(cacheKey);
     }
 }

@@ -59,5 +59,10 @@ export const examApi = {
   // 获取题目列表
   getQuestionList: (examId) => {
     return request.get(`/question/list/${examId}`);
+  },
+
+  // 教师获取指定考试的题目列表
+  getTeacherExamQuestions: (examId) => {
+    return request.get(`/question/teacher/exam/${examId}`);
   }
 };

@@ -12,8 +12,10 @@ import com.education.platform.mapper.UserInfoMapper;
 import com.education.platform.mapper.UserMapper;
 import com.education.platform.service.IUserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.platform.util.CacheConstants;
 import com.education.platform.util.PageUtils;
 import com.education.platform.util.R;
+import com.education.platform.util.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +37,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
     @Autowired
     private UserMapper userMapper;
+    
+    @Autowired
+    private RedisUtils redisUtils;
 
     @Override
     public PageResult<UserInfo> getUserList(PageRequest request) {
@@ -63,9 +68,23 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
     @Override
     public UserInfo getByUserId(Long userId) {
-        return this.lambdaQuery()
+        // 先从 Redis 缓存中获取
+        String cacheKey = CacheConstants.USER_INFO_PREFIX + "detail:" + userId;
+        UserInfo cachedUserInfo = (UserInfo) redisUtils.get(cacheKey);
+        if (cachedUserInfo != null) {
+            return cachedUserInfo;
+        }
+        
+        UserInfo userInfo = this.lambdaQuery()
                 .eq(UserInfo::getUserId, userId)
                 .one();
+        
+        if (userInfo != null) {
+            // 存储到 Redis 缓存
+            redisUtils.set(cacheKey, userInfo, CacheConstants.USER_INFO_EXPIRE_TIME);
+        }
+        
+        return userInfo;
     }
 
     @Override
@@ -85,6 +104,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                         .eq("id", userId)
                         .set("email", request.getEmail())
         );
+        
+        // 清除用户信息缓存
+        clearUserInfoCache(userId);
 
         return R.ok();
     }
@@ -100,6 +122,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                         .set("qq", request.getQq())
                         .set("wechat", request.getWechat())
         );
+        
+        // 清除用户信息缓存
+        clearUserInfoCache(userId);
+        
         return R.ok();
     }
 
@@ -115,6 +141,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                         .set("major", request.getMajor())
                         .set("grade", request.getGrade())
         );
+        
+        // 清除用户信息缓存
+        clearUserInfoCache(userId);
+        
         return R.ok();
     }
 
@@ -129,6 +159,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                         .set("department", request.getDepartment())
                         .set("research", request.getResearch())
         );
+        
+        // 清除用户信息缓存
+        clearUserInfoCache(userId);
+        
         return R.ok();
     }
 
@@ -141,6 +175,10 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
                         .eq("user_id", userId)
                         .set("bio", request.getBio())
         );
+        
+        // 清除用户信息缓存
+        clearUserInfoCache(userId);
+        
         return R.ok();
     }
 
@@ -154,6 +192,14 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
             throw new RuntimeException("当前用户信息异常");
         }
         return userId;
+    }
+    
+    /**
+     * 清除用户信息缓存
+     */
+    private void clearUserInfoCache(Long userId) {
+        String cacheKey = CacheConstants.USER_INFO_PREFIX + "detail:" + userId;
+        redisUtils.del(cacheKey);
     }
 
 }

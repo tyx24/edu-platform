@@ -61,3 +61,11 @@ knife4j:
 logging:
   level:
     com.baomidou.mybatisplus: DEBUG
+
+
+# 阿里云OSS配置
+aliyun:
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    region: cn-beijing
+    bucket-name: tan-edu1

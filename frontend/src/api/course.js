@@ -2,8 +2,9 @@ import request from './request';
 
 export const courseApi = {
   // 分页查询课程
-  getCourseList: (params) => {
-    return request.post('/course/list', params);
+  getCourseList: (params, difficulty) => {
+    const url = difficulty ? `/course/list?difficulty=${encodeURIComponent(difficulty)}` : '/course/list';
+    return request.post(url, params);
   },
 
   // 获取课程详情
@@ -65,14 +66,15 @@ export const courseApi = {
     return request.post('/resource/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+        timeout: 300000,
+        onUploadProgress: (progressEvent) => {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`上传进度：${percent}%`);
+        }
     });
   },
-  
-  // 更新资源 // ？？？
-  updateResource: (resourceId, data) => {
-    return request.put(`/resource/${resourceId}`, data);
-  },
+
 
   // 删除资源
   deleteResource: (id) => {

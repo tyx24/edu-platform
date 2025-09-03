@@ -10,9 +10,11 @@ import com.education.platform.entity.User;
 import com.education.platform.mapper.UserMapper;
 import com.education.platform.service.IUserService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.education.platform.util.CacheConstants;
 import com.education.platform.util.JwtUtils;
 import com.education.platform.util.PageUtils;
 import com.education.platform.util.R;
+import com.education.platform.util.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private RedisUtils redisUtils;
 
     // 密码加密
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -75,7 +80,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (user.getStatus() != 1) {
             throw new RuntimeException("账户已被禁用");
         }
-        return jwtUtils.generateToken(user.getId(), user.getRole());
+        
+        // 生成JWT Token
+        String token = jwtUtils.generateToken(user.getId(), user.getRole());
+        
+        // 将Token存储到Redis中，设置过期时间
+        String tokenKey = CacheConstants.USER_TOKEN_PREFIX + user.getId();
+        redisUtils.setString(tokenKey, token, CacheConstants.JWT_TOKEN_EXPIRE_TIME);
+        
+        // 缓存用户信息到Redis
+        String userInfoKey = CacheConstants.USER_INFO_PREFIX + user.getId();
+        redisUtils.set(userInfoKey, user, CacheConstants.USER_INFO_EXPIRE_TIME);
+        
+        return token;
+    }
+    
+    // 退出登录
+    @Override
+    public void logout(Long userId) {
+        // 从 Redis 中删除 Token 和用户信息
+        String tokenKey = CacheConstants.USER_TOKEN_PREFIX + userId;
+        String userInfoKey = CacheConstants.USER_INFO_PREFIX + userId;
+        
+        redisUtils.del(tokenKey, userInfoKey);
     }
 
     // 获取用户列表
@@ -92,7 +119,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         // 状态筛选（已发布、待审核、关闭）
         if (request.getState() != null) {
-            System.out.println(query.eq(User::getStatus, request.getState()));
             query.eq(User::getStatus, request.getState());
         }
         // 角色筛选
@@ -118,6 +144,63 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return R.fail("旧密码错误");
         }
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
-        return R.ok(userMapper.updateById(user));
+        
+        // 更新数据库
+        int result = userMapper.updateById(user);
+        
+        if (result > 0) {
+            // 清除用户相关缓存，强制重新登录
+            String tokenKey = CacheConstants.USER_TOKEN_PREFIX + dto.getUserId();
+            String userInfoKey = CacheConstants.USER_INFO_PREFIX + dto.getUserId();
+            redisUtils.del(tokenKey, userInfoKey);
+        }
+        
+        return R.ok(result);
+    }
+    
+    /**
+     * 获取用户信息（带缓存）
+     */
+    public User getUserWithCache(Long userId) {
+        String cacheKey = CacheConstants.USER_INFO_PREFIX + userId;
+        User cachedUser = (User) redisUtils.get(cacheKey);
+        if (cachedUser != null) {
+            return cachedUser;
+        }
+        
+        User user = getById(userId);
+        if (user != null) {
+            // 不缓存密码信息
+            User cacheUser = new User();
+            cacheUser.setId(user.getId());
+            cacheUser.setUsername(user.getUsername());
+            cacheUser.setEmail(user.getEmail());
+            cacheUser.setRole(user.getRole());
+            cacheUser.setStatus(user.getStatus());
+            cacheUser.setCreateTime(user.getCreateTime());
+            
+            redisUtils.set(cacheKey, cacheUser, CacheConstants.USER_INFO_EXPIRE_TIME);
+            return user; // 返回完整的用户信息
+        }
+        
+        return null;
+    }
+    
+    @Override
+    public boolean updateById(User entity) {
+        boolean result = super.updateById(entity);
+        if (result) {
+            // 清除用户信息缓存
+            clearUserCache(entity.getId());
+        }
+        return result;
+    }
+    
+    /**
+     * 清除用户缓存
+     */
+    private void clearUserCache(Long userId) {
+        String userInfoKey = CacheConstants.USER_INFO_PREFIX + userId;
+        redisUtils.del(userInfoKey);
     }
 }

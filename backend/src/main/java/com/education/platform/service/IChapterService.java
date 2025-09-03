@@ -16,4 +16,6 @@ import java.util.List;
 public interface IChapterService extends IService<Chapter> {
 
     List<Chapter> getChapterTree(Long courseId); // 获取章节树
+
+    boolean removeById(Long id);
 }

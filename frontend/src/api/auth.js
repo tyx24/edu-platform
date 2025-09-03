@@ -11,4 +11,9 @@ export const authApi = {
     return request.post('/auth/register', data);
   },
 
+  // 用户退出登录
+  logout: () => {
+    return request.post('/auth/logout');
+  },
+
 };

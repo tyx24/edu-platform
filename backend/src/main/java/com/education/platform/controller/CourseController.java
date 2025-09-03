@@ -141,8 +141,12 @@ public class CourseController {
     @Operation(summary = "分页查询课程", description = "支持关键词搜索、状态筛选、类别筛选")
     @ApiResponse(responseCode = "200", description = "查询成功")
     @PostMapping("/list")
-    public PageResult<Course> getCourseList(@RequestBody PageRequest request) {
-        return courseService.getCourseList(request);
+    public PageResult<Course> getCourseList(@RequestBody PageRequest request,
+                                            @Parameter(description = "角色筛选，可选 初级/中级/高级", required = false)
+                                            @RequestParam(required = false) String difficulty
+    ) {
+
+        return courseService.getCourseList(request, difficulty);
     }
 
 

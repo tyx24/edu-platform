@@ -107,6 +107,7 @@ import { QuillEditor, Quill } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
+import "../../utils/VideoBlot";
 
 // 注册自定义附件按钮
 const icons = Quill.import('ui/icons');
@@ -160,7 +161,8 @@ const handleContentImageUpload = () => {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('chapterId', chapterDetail.id);
-                formData.append('type', 'image');
+                // 移除type参数，后端根据文件扩展名自动判断类型
+                // formData.append('type', 'image');
 
                 const res = await courseApi.uploadResource(formData);
                 const imageUrl = res.data.url;
@@ -168,7 +170,7 @@ const handleContentImageUpload = () => {
                 // 插入图片到编辑器
                 const quill = contentEditor.value.getQuill();
                 const range = quill.getSelection();
-                quill.insertEmbed(range ? range.index : 0, 'image', `/edu${imageUrl}`);
+                quill.insertEmbed(range ? range.index : 0, 'image', imageUrl);
 
                 ElMessage.success('图片上传成功');
             } catch (error) {
@@ -193,16 +195,19 @@ const handleContentVideoUpload = () => {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('chapterId', chapterDetail.id);
-                formData.append('type', 'video');
+                // 移除type参数，后端根据文件扩展名自动判断类型
+                // formData.append('type', 'video');
 
                 const res = await courseApi.uploadResource(formData);
                 const videoUrl = res.data.url;
+                console.log('视频上传成功:', videoUrl);
 
                 // 插入视频到编辑器
                 const quill = contentEditor.value.getQuill();
                 const range = quill.getSelection();
-                quill.insertEmbed(range ? range.index : 0, 'video', `/edu${videoUrl}`);
-
+                
+                quill.insertEmbed(range ? range.index : 0, "video", videoUrl);
+                quill.setSelection(range.index + 1);
                 ElMessage.success('视频上传成功');
             } catch (error) {
                 console.error('视频上传失败:', error);
@@ -226,29 +231,41 @@ const handleContentAttachmentUpload = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('chapterId', chapterDetail.id);
-        formData.append('type', 'attachment');
+        formData.append('title', file.name); // 添加文件标题
+        // 移除type参数，后端根据文件扩展名自动判断类型
+        // formData.append('type', 'attachment');
 
         const res = await courseApi.uploadResource(formData);
 
-        // 后端需要返回转换后的预览URL
-        const previewUrl = res.data.url;
+        // OSS返回的是完整的预签名URL，可以直接用于下载
+        const fileUrl = res.data.url;
         const fileName = file.name;
 
         const quill = contentEditor.value.getQuill();
         const range = quill.getSelection();
 
-        // 插入iframe，而不是超链接
-        const iframeHtml = `
-          <iframe src="${previewUrl}"
-                  class="ans-attach-online insertdoc-online-pdf"
-                  frameborder="0"
-                  scrolling="no"
-                  allowfullscreen="true"
-                  style="height: 600px; width: 100%;"></iframe>
-        `;
-        quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, iframeHtml);
+        // 根据文件类型决定插入方式
+        const fileExt = fileName.split('.').pop().toLowerCase();
+        
+        // 由于OSS预签名URL在iframe中可能存在CORS问题，统一使用下载链接
+        // 用户可以点击链接在新窗口中预览或下载文件
+        let linkIcon = '📎'; // 默认附件图标
+        if (['pdf'].includes(fileExt)) {
+          linkIcon = '📄'; // PDF图标
+        } else if (['doc', 'docx'].includes(fileExt)) {
+          linkIcon = '📝'; // Word图标
+        } else if (['xls', 'xlsx'].includes(fileExt)) {
+          linkIcon = '📊'; // Excel图标
+        } else if (['ppt', 'pptx'].includes(fileExt)) {
+          linkIcon = '📽️'; // PPT图标
+        } else if (['zip', 'rar'].includes(fileExt)) {
+          linkIcon = '🗜️'; // 压缩包图标
+        }
+        
+        const linkHtml = `<a href="${fileUrl}" download="${fileName}" class="attachment-link" target="_blank" rel="noopener noreferrer">${linkIcon} ${fileName}</a>`;
+        quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, linkHtml);
 
-        ElMessage.success('附件上传成功并可预览');
+        ElMessage.success('附件上传成功');
       } catch (error) {
         console.error('附件上传失败:', error);
         ElMessage.error('附件上传失败');
@@ -356,7 +373,14 @@ const syncResourceChanges = async () => {
 
         // 处理删除的资源
         for (const url of removedUrls) {
+            // OSS URL匹配：直接匹配完整URL
             const resources = currentResources.value.filter(r => r.url === url);
+            
+            if (resources.length === 0) {
+                console.warn('未找到匹配的资源记录:', url);
+                continue;
+            }
+            
             for (const resource of resources) {
                 try {
                     await courseApi.deleteResource(resource.id);
@@ -386,32 +410,39 @@ const extractMediaUrls = (content) => {
     const imgRegex = /<img[^>]+src="([^"]+)"/g;
     let match;
     while ((match = imgRegex.exec(content)) !== null) {
-        // 去掉/edu前缀，保持与资源表中的URL一致
-        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        // OSS返回的是完整URL，直接使用
+        const url = match[1];
         urls.push(url);
     }
 
-    // 提取视频URL
+    // 提取视频URL（从video标签的src属性或source子标签中）
     const videoRegex = /<video[^>]+src="([^"]+)"/g;
     while ((match = videoRegex.exec(content)) !== null) {
-        // 去掉/edu前缀，保持与资源表中的URL一致
-        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        const url = match[1];
+        urls.push(url);
+    }
+    
+    // 提取video标签内source元素的src属性
+    const sourceRegex = /<source[^>]+src="([^"]+)"/g;
+    while ((match = sourceRegex.exec(content)) !== null) {
+        // OSS返回的是完整URL，直接使用
+        const url = match[1];
         urls.push(url);
     }
 
-    // 提取iframe中的视频URL
+    // 提取iframe中的URL
     const iframeRegex = /<iframe[^>]+src="([^"]+)"/g;
     while ((match = iframeRegex.exec(content)) !== null) {
-        // 去掉/edu前缀，保持与资源表中的URL一致
-        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        // OSS返回的是完整URL，直接使用
+        const url = match[1];
         urls.push(url);
     }
 
-    // 提取附件链接URL
-    const attachmentRegex = /<iframe[^>]+src="([^"]+)"[^>]*class="ans-attach-online[^"]*"[^>]*><\/iframe>/g;
+    // 提取附件下载链接URL
+    const attachmentRegex = /<a[^>]+href="([^"]+)"[^>]*class="attachment-link"[^>]*>/g;
     while ((match = attachmentRegex.exec(content)) !== null) {
-        // 去掉/edu前缀，保持与资源表中的URL一致
-        const url = match[1].startsWith('/edu') ? match[1].substring(4) : match[1];
+        // OSS返回的是完整URL，直接使用
+        const url = match[1];
         urls.push(url);
     }
 
@@ -761,6 +792,51 @@ onMounted(async () => {
     :deep(.ql-editor img) {
         max-width: 100%;
     }
+}
+
+/* 附件链接样式 */
+.chapter-content .attachment-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 8px 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.chapter-content .attachment-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    text-decoration: none;
+    color: white;
+}
+
+:deep(.ql-editor .attachment-link) {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 8px 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+:deep(.ql-editor .attachment-link:hover) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    text-decoration: none;
+    color: white;
 }
 
 .resources-section {

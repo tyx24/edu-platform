@@ -21,7 +21,7 @@ export const userinfoApi = {
   // 更新用户信息
   // 更新基本信息（真实姓名、邮箱）
   updateBasicInfo: (basicInfo) => {
-    return request.post('/userInfo//updateBasicInfo', basicInfo);
+    return request.post('/userInfo/updateBasicInfo', basicInfo);
   },
 
   // 更新联系方式

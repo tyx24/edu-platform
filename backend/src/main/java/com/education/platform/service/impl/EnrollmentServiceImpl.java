@@ -11,6 +11,8 @@ import com.education.platform.service.IEnrollmentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.education.platform.service.ILearningRecordService;
 import com.education.platform.service.IUserService;
+import com.education.platform.util.CacheConstants;
+import com.education.platform.util.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +45,9 @@ public class EnrollmentServiceImpl extends ServiceImpl<EnrollmentMapper, Enrollm
 
     @Autowired
     private ILearningRecordService learningRecordService;
+    
+    @Autowired
+    private RedisUtils redisUtils;
 
     // 选课
     @Override
@@ -63,6 +68,9 @@ public class EnrollmentServiceImpl extends ServiceImpl<EnrollmentMapper, Enrollm
         enrollment.setProgress((byte) 0);
 
         this.save(enrollment);
+        
+        // 清除选课相关缓存
+        clearEnrollmentCache(studentId, courseId);
     }
 
     // 退课
@@ -76,17 +84,32 @@ public class EnrollmentServiceImpl extends ServiceImpl<EnrollmentMapper, Enrollm
         if (!removed) {
             throw new RuntimeException("未找到该课程的选课记录");
         }
+        
+        // 清除选课相关缓存
+        clearEnrollmentCache(studentId, courseId);
     }
 
 
     // 根据学生id获取选课列表
     @Override
     public List<Course> getCoursesBystudentId(Long studentId) {
+        // 先从 Redis 缓存中获取
+        String cacheKey = CacheConstants.USER_PREFIX + "courses:" + studentId;
+        List<Course> cachedCourses = (List<Course>) redisUtils.get(cacheKey);
+        if (cachedCourses != null) {
+            return cachedCourses;
+        }
+        
         List<Enrollment> enrollments = lambdaQuery()
                 .eq(Enrollment::getStudentId, studentId).list();
         List<Long> courseIds = enrollments.stream()
                 .map(Enrollment::getCourseId).collect(Collectors.toList());
-        return courseService.listByIds(courseIds);
+        List<Course> courses = courseService.listByIds(courseIds);
+        
+        // 存储到 Redis 缓存
+        redisUtils.set(cacheKey, courses, CacheConstants.EXPIRE_TIME_1_HOUR);
+        
+        return courses;
     }
 
 
@@ -159,5 +182,16 @@ public class EnrollmentServiceImpl extends ServiceImpl<EnrollmentMapper, Enrollm
         }
 
         return result;
+    }
+    
+    /**
+     * 清除选课相关缓存
+     */
+    private void clearEnrollmentCache(Long studentId, Long courseId) {
+        // 清除学生选课列表缓存
+        String studentCoursesCacheKey = CacheConstants.USER_PREFIX + "courses:" + studentId;
+        redisUtils.del(studentCoursesCacheKey);
+        
+        // 可以清除更多相关缓存，比如教师的课程学生列表等
     }
 }

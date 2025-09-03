@@ -50,6 +50,16 @@ export const homeworkApi = {
     return request.get('/submission/my');
   },
 
+  // 获取作业的所有提交记录
+  getSubmissionsByHomework: (homeworkId) => {
+    return request.get(`/submission/homework/${homeworkId}`);
+  },
+
+  // 获取单个提交记录详情
+  getSubmissionDetail: (submissionId) => {
+    return request.get(`/submission/${submissionId}`);
+  },
+
   // =====================================
   // 获取作业详情
   getHomeworkById: (id) => {
